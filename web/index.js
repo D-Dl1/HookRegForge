@@ -83,14 +83,23 @@ async function run(code, hookStr, keepTail) {
 }
 
 export async function runFromUI() {
+  const outputEl = document.getElementById('output');
+  outputEl.style.color = 'inherit';
+  outputEl.textContent = '';
   const file = document.getElementById('fileInput').files[0];
   if (!file) { alert('请选择源码文件'); return; }
   const hookStr = document.getElementById('hookInput').value.trim();
   if (!hookStr) { alert('请输入 Hook 字符串'); return; }
   const keepTail = parseInt(document.getElementById('keepInput').value || '2', 10);
-  const code = await file.text();
-  const result = await run(code, hookStr, keepTail);
-  document.getElementById('output').textContent = result;
+  try {
+    const code = await file.text();
+    const result = await run(code, hookStr, keepTail);
+    outputEl.textContent = result;
+  } catch (e) {
+    console.error(e);
+    outputEl.style.color = 'red';
+    outputEl.textContent = '错误: ' + (e && e.message ? e.message : e);
+  }
 }
 
 export function copyOutput() {

@@ -29,3 +29,15 @@ function fallbackCopy(text) {
   document.body.removeChild(ta);
 }
   copyOutput,
+  const outputEl = document.getElementById("output");
+  outputEl.style.color = "inherit";
+  outputEl.textContent = "";
+  try {
+    const code = await file.text();
+    const result = await run(code, hookStr, keepTail);
+    outputEl.textContent = result;
+  } catch (e) {
+    console.error(e);
+    outputEl.style.color = "red";
+    outputEl.textContent = "\u9519\u8BEF: " + (e && e.message ? e.message : e);
+  }
