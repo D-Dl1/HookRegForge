@@ -23,52 +23,35 @@
 
         <main class="main">
             <div class="workspace">
-                <div class="input-section">
+                <section class="input-section">
                     <div class="section-header">
                         <h2><i class="fas fa-edit"></i> JavaScript 代码输入</h2>
                         <div class="toolbar">
-                            <button id="clearBtn" class="btn btn-secondary">
+                            <button data-action="clear" class="btn btn-secondary">
                                 <i class="fas fa-trash"></i> 清空
                             </button>
-                            <button id="loadSampleBtn" class="btn btn-secondary">
+                            <button data-action="load-sample" class="btn btn-secondary">
                                 <i class="fas fa-file-code"></i> 加载示例
                             </button>
                         </div>
                     </div>
                     <div class="editor-container">
-                        <textarea id="jsInput" placeholder="在此输入您的JavaScript代码...
-
-示例：
-function processUser(data) {
-    const user = data.user;
-    if (user && user.profile) {
-        return user.profile.getName();
-    }
-    return null;
-}
-
-window.myApp = {
-    utils: {
-        encrypt: function(str) {
-            return btoa(str);
-        }
-    }
-};"></textarea>
+                        <textarea data-field="js-input" class="code-input"></textarea>
                     </div>
-                </div>
+                </section>
 
-                <div class="control-section">
+                <section class="control-section">
                     <div class="section-header">
                         <h2><i class="fas fa-cogs"></i> 生成配置</h2>
                     </div>
-                    <div class="config-grid">
+                    <form class="config-form">
                         <div class="config-group">
-                            <label for="targetFunction">目标函数名</label>
-                            <input type="text" id="targetFunction" placeholder="例: getName, encrypt">
+                            <label for="target-function">目标函数名</label>
+                            <input type="text" id="target-function" data-field="target-function" class="config-input">
                         </div>
                         <div class="config-group">
-                            <label for="hookType">Hook类型</label>
-                            <select id="hookType">
+                            <label for="hook-type">Hook类型</label>
+                            <select id="hook-type" data-field="hook-type" class="config-select">
                                 <option value="function">函数调用</option>
                                 <option value="property">属性访问</option>
                                 <option value="method">方法调用</option>
@@ -77,58 +60,58 @@ window.myApp = {
                         </div>
                         <div class="config-group">
                             <label for="depth">搜索深度</label>
-                            <input type="number" id="depth" min="1" max="10" value="3">
+                            <input type="number" id="depth" data-field="depth" min="1" max="10" value="3" class="config-input">
                         </div>
                         <div class="config-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="flexible">
+                                <input type="checkbox" data-field="flexible" class="config-checkbox">
                                 <span class="checkmark"></span>
                                 弹性匹配
                             </label>
                         </div>
-                    </div>
-                    <button id="generateBtn" class="btn btn-primary">
-                        <i class="fas fa-magic"></i> 生成Hook正则
-                    </button>
-                </div>
+                        <button type="button" data-action="generate" class="btn btn-primary generate-btn">
+                            <i class="fas fa-magic"></i> 生成Hook正则
+                        </button>
+                    </form>
+                </section>
             </div>
 
-            <div class="results-section">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="ast">
+            <section class="results-section">
+                <nav class="tabs" role="tablist">
+                    <button class="tab-btn active" data-tab="ast" role="tab" aria-selected="true">
                         <i class="fas fa-sitemap"></i> AST 结构
                     </button>
-                    <button class="tab-btn" data-tab="paths">
+                    <button class="tab-btn" data-tab="paths" role="tab" aria-selected="false">
                         <i class="fas fa-route"></i> 函数路径
                     </button>
-                    <button class="tab-btn" data-tab="regex">
+                    <button class="tab-btn" data-tab="regex" role="tab" aria-selected="false">
                         <i class="fas fa-search"></i> 正则表达式
                     </button>
-                    <button class="tab-btn" data-tab="test">
+                    <button class="tab-btn" data-tab="test" role="tab" aria-selected="false">
                         <i class="fas fa-vial"></i> 测试验证
                     </button>
-                </div>
+                </nav>
 
                 <div class="tab-content">
-                    <div id="ast-tab" class="tab-pane active">
+                    <div data-tab-panel="ast" class="tab-pane active" role="tabpanel">
                         <div class="section-header">
                             <h3>AST 语法树</h3>
-                            <button id="expandAstBtn" class="btn btn-small">
+                            <button data-action="expand-ast" class="btn btn-small">
                                 <i class="fas fa-expand"></i> 展开所有
                             </button>
                         </div>
                         <div class="ast-container">
-                            <pre id="astOutput"><code>解析的AST结构将在这里显示...</code></pre>
+                            <pre data-output="ast" class="code-output"><code>解析的AST结构将在这里显示...</code></pre>
                         </div>
                     </div>
 
-                    <div id="paths-tab" class="tab-pane">
+                    <div data-tab-panel="paths" class="tab-pane" role="tabpanel">
                         <div class="section-header">
                             <h3>发现的函数路径</h3>
-                            <span id="pathCount" class="badge">0 个路径</span>
+                            <span data-counter="paths" class="badge">0 个路径</span>
                         </div>
                         <div class="paths-container">
-                            <div id="pathsList" class="paths-list">
+                            <div data-list="paths" class="paths-list">
                                 <div class="empty-state">
                                     <i class="fas fa-search"></i>
                                     <p>输入代码并点击"生成Hook正则"来发现函数路径</p>
@@ -137,40 +120,40 @@ window.myApp = {
                         </div>
                     </div>
 
-                    <div id="regex-tab" class="tab-pane">
+                    <div data-tab-panel="regex" class="tab-pane" role="tabpanel">
                         <div class="section-header">
                             <h3>生成的正则表达式</h3>
-                            <button id="copyRegexBtn" class="btn btn-small">
+                            <button data-action="copy-regex" class="btn btn-small">
                                 <i class="fas fa-copy"></i> 复制
                             </button>
                         </div>
                         <div class="regex-container">
                             <div class="regex-output">
-                                <pre id="regexOutput"><code>生成的正则表达式将在这里显示...</code></pre>
+                                <pre data-output="regex" class="code-output"><code>生成的正则表达式将在这里显示...</code></pre>
                             </div>
                             <div class="regex-explanation">
                                 <h4>正则说明</h4>
-                                <div id="regexExplanation">
+                                <div data-output="regex-explanation">
                                     <p>正则表达式的详细解释将在这里显示...</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="test-tab" class="tab-pane">
+                    <div data-tab-panel="test" class="tab-pane" role="tabpanel">
                         <div class="section-header">
                             <h3>测试验证</h3>
                         </div>
                         <div class="test-container">
-                            <div class="test-input">
-                                <label for="testString">测试字符串</label>
-                                <textarea id="testString" placeholder="输入要测试的字符串..."></textarea>
+                            <div class="test-input-group">
+                                <label for="test-string">测试字符串</label>
+                                <textarea id="test-string" data-field="test-string" class="test-input"></textarea>
                             </div>
-                            <button id="testBtn" class="btn btn-primary">
+                            <button data-action="test" class="btn btn-primary">
                                 <i class="fas fa-play"></i> 运行测试
                             </button>
                             <div class="test-results">
-                                <div id="testOutput" class="test-output">
+                                <div data-output="test" class="test-output">
                                     <div class="empty-state">
                                         <i class="fas fa-flask"></i>
                                         <p>输入测试字符串并运行测试</p>
@@ -180,7 +163,7 @@ window.myApp = {
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
 
         <footer class="footer">
@@ -201,7 +184,7 @@ window.myApp = {
                 <div class="footer-section">
                     <h4>开源项目</h4>
                     <p>
-                        <a href="https://github.com/D-Dl1/HookRegForge" target="_blank">
+                        <a href="https://github.com/D-Dl1/HookRegForge" target="_blank" rel="noopener noreferrer">
                             <i class="fab fa-github"></i> GitHub
                         </a>
                     </p>
@@ -210,7 +193,7 @@ window.myApp = {
         </footer>
     </div>
 
-    <div id="loading" class="loading">
+    <div data-overlay="loading" class="loading">
         <div class="spinner"></div>
         <p>正在生成Hook正则...</p>
     </div>
@@ -218,6 +201,6 @@ window.myApp = {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
