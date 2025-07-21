@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>HookRegForge Web</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  textarea { width: 100%; height: 120px; }
+  input, button { padding: 6px 12px; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>HookRegForge Web</h1>
+<p>上传混淆后的 JavaScript 文件并输入 Hook 字符串。</p>
+<input type="file" id="fileInput" accept=".js"><br>
+<label>Hook 字符串: <input id="hookInput" placeholder="a.b.c()"></label>
+<label>保留尾段数: <input id="keepInput" type="number" value="2" min="1" style="width:60px"></label>
+<button onclick="main.runFromUI()">生成</button>
+<pre id="output"></pre>
+<script type="module" src="bundle.js"></script>
+</body>
+</html>
