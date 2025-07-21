@@ -47,11 +47,12 @@ node gen-flex-regex.js ./game.js "a.b.c()" 2
 
 ## 浏览器版本
 
-1. 安装依赖并构建:
+打开 `web/index.html` 即可直接在浏览器中使用（仓库已附带构建好的 `bundle.js`）。
+若修改了 `web/index.js`，可执行以下命令重新打包：
 
 ```bash
 npm install
 npm run build:web
 ```
 
-2. 构建完成后，打开 `web/index.html` 即可在手机浏览器中使用。上传混淆后的源码文件，输入 Hook 字符串和保留尾段数，点击“生成”即可得到正则。
+网页端与 CLI 功能一致：上传混淆后的源码文件，输入 Hook 字符串和保留尾段数，点击“生成”即可得到正则。点击“复制结果”可将输出快速复制到剪贴板。

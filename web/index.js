@@ -92,3 +92,32 @@ export async function runFromUI() {
   const result = await run(code, hookStr, keepTail);
   document.getElementById('output').textContent = result;
 }
+
+export function copyOutput() {
+  const text = document.getElementById('output').textContent.trim();
+  if (!text) { alert('暂无结果可复制'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('已复制到剪贴板');
+    }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    alert('已复制到剪贴板');
+  } catch (e) {
+    alert('复制失败');
+  }
+  document.body.removeChild(ta);
+}
