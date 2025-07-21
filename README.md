@@ -47,8 +47,8 @@ node gen-flex-regex.js ./game.js "a.b.c()" 2
 
 ## 浏览器版本
 
-打开 `web/index.html` 即可直接在浏览器中使用（仓库已附带构建好的 `bundle.js`）。
-若修改了 `web/index.js`，可执行以下命令重新打包：
+仓库根目录已提供跳转页，部署到 GitHub Pages 后直接访问仓库主页即可进入界面。
+若本地调试或修改了 `web/index.js`，可执行以下命令重新打包：
 
 ```bash
 npm install
