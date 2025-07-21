@@ -15,8 +15,11 @@
 <input type="file" id="fileInput" accept=".js"><br>
 <label>Hook 字符串: <input id="hookInput" placeholder="a.b.c()"></label>
 <label>保留尾段数: <input id="keepInput" type="number" value="2" min="1" style="width:60px"></label>
-<button onclick="main.runFromUI()">生成</button>
+<button id="genBtn">生成</button>
 <pre id="output"></pre>
-<script type="module" src="bundle.js"></script>
+<script type="module">
+import { runFromUI } from './bundle.js';
+document.getElementById('genBtn').addEventListener('click', runFromUI);
+</script>
 </body>
 </html>
