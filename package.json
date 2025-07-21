@@ -1,0 +1,14 @@
+{
+  "name": "hookregforge",
+  "version": "1.0.0",
+  "description": "Hook 路径正则生成器",
+  "main": "gen-flex-regex.js",
+  "scripts": {
+    "build:web": "node build-web.js"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.24.1",
+    "@babel/traverse": "^7.24.1",
+    "esbuild": "^0.25.8"
+  }
+}
