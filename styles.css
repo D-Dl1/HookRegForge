@@ -271,41 +271,70 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     border: none;
     border-radius: var(--border-radius);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
+    text-decoration: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-decoration: none;
     white-space: nowrap;
 }
 
+.btn:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    background: var(--accent-primary);
     color: var(--bg-primary);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+    background: var(--accent-secondary);
 }
 
 .btn-secondary {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-    background: var(--bg-hover);
+    background: var(--bg-tertiary);
     border-color: var(--accent-primary);
 }
 
 .btn-small {
-    padding: 0.5rem 1rem;
+    padding: 0.25rem 0.5rem;
     font-size: 12px;
+}
+
+.btn i {
+    font-size: 14px;
+}
+
+.btn-small i {
+    font-size: 12px;
+}
+
+/* 文件上传按钮样式 */
+.file-upload-btn {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.file-upload-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
 }
 
 /* 结果区域 */

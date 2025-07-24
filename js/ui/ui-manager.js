@@ -26,6 +26,8 @@ export class UIManager {
      * 缓存DOM元素
      */
     cacheElements() {
+        console.log('开始缓存DOM元素...');
+        
         // 输入字段
         this.elements.jsInput = getElement(APP_CONFIG.selectors.fields.jsInput);
         this.elements.targetFunction = getElement(APP_CONFIG.selectors.fields.targetFunction);
@@ -56,6 +58,16 @@ export class UIManager {
         this.elements.tabs = getElements(APP_CONFIG.selectors.ui.tabs);
         this.elements.tabPanels = getElements(APP_CONFIG.selectors.ui.tabPanels);
         this.elements.loadingOverlay = getElement(APP_CONFIG.selectors.ui.loadingOverlay);
+        
+        // 调试信息
+        console.log('DOM元素缓存完成，检查关键元素:');
+        console.log('- 输入框:', this.elements.jsInput ? '✓' : '✗');
+        console.log('- 清空按钮:', this.elements.clearBtn ? '✓' : '✗');
+        console.log('- 加载示例按钮:', this.elements.loadSampleBtn ? '✓' : '✗');
+        console.log('- 生成按钮:', this.elements.generateBtn ? '✓' : '✗');
+        console.log('- 复制按钮:', this.elements.copyRegexBtn ? '✓' : '✗');
+        console.log('- 测试按钮:', this.elements.testBtn ? '✓' : '✗');
+        console.log('- 展开AST按钮:', this.elements.expandAstBtn ? '✓' : '✗');
     }
 
     /**

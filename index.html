@@ -33,6 +33,10 @@
                             <button data-action="load-sample" class="btn btn-secondary">
                                 <i class="fas fa-file-code"></i> 加载示例
                             </button>
+                            <label for="file-upload" class="btn btn-secondary file-upload-btn">
+                                <i class="fas fa-upload"></i> 上传文件
+                                <input type="file" id="file-upload" data-action="upload" accept=".js,.jsx,.ts,.tsx,.txt" style="display: none;">
+                            </label>
                         </div>
                     </div>
                     <div class="editor-container">
@@ -196,6 +200,13 @@
     <div data-overlay="loading" class="loading">
         <div class="spinner"></div>
         <p>正在生成Hook正则...</p>
+    </div>
+
+    <!-- 调试状态指示器 -->
+    <div id="debug-status" style="position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 1000; display: none;">
+        <div>状态: <span id="status-text">初始化中...</span></div>
+        <div>依赖: <span id="deps-status">检查中...</span></div>
+        <div>按钮: <span id="buttons-status">绑定中...</span></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
