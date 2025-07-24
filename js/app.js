@@ -53,47 +53,87 @@ class HookRegForge {
      * 绑定操作按钮事件
      */
     bindActionEvents() {
+        console.log('开始绑定按钮事件...');
+        
         // 清空按钮
         if (this.ui.elements.clearBtn) {
             this.ui.elements.clearBtn.addEventListener('click', () => {
+                console.log('清空按钮被点击');
                 this.clearInput();
             });
+            console.log('清空按钮事件绑定成功');
+        } else {
+            console.warn('清空按钮未找到');
         }
 
         // 加载示例按钮
         if (this.ui.elements.loadSampleBtn) {
             this.ui.elements.loadSampleBtn.addEventListener('click', () => {
+                console.log('加载示例按钮被点击');
                 this.loadSampleCode();
             });
+            console.log('加载示例按钮事件绑定成功');
+        } else {
+            console.warn('加载示例按钮未找到');
+        }
+
+        // 文件上传功能
+        const fileUpload = document.getElementById('file-upload');
+        if (fileUpload) {
+            fileUpload.addEventListener('change', (e) => {
+                console.log('文件上传触发');
+                this.handleFileUpload(e);
+            });
+            console.log('文件上传事件绑定成功');
+        } else {
+            console.warn('文件上传元素未找到');
         }
 
         // 生成按钮
         if (this.ui.elements.generateBtn) {
             this.ui.elements.generateBtn.addEventListener('click', () => {
+                console.log('生成Hook正则按钮被点击');
                 this.generateHook();
             });
+            console.log('生成按钮事件绑定成功');
+        } else {
+            console.warn('生成按钮未找到');
         }
 
         // 复制正则按钮
         if (this.ui.elements.copyRegexBtn) {
             this.ui.elements.copyRegexBtn.addEventListener('click', () => {
+                console.log('复制正则按钮被点击');
                 this.copyRegex();
             });
+            console.log('复制正则按钮事件绑定成功');
+        } else {
+            console.warn('复制正则按钮未找到');
         }
 
         // 测试按钮
         if (this.ui.elements.testBtn) {
             this.ui.elements.testBtn.addEventListener('click', () => {
+                console.log('测试按钮被点击');
                 this.testRegex();
             });
+            console.log('测试按钮事件绑定成功');
+        } else {
+            console.warn('测试按钮未找到');
         }
 
         // 展开AST按钮
         if (this.ui.elements.expandAstBtn) {
             this.ui.elements.expandAstBtn.addEventListener('click', () => {
+                console.log('展开AST按钮被点击');
                 this.expandAST();
             });
+            console.log('展开AST按钮事件绑定成功');
+        } else {
+            console.warn('展开AST按钮未找到');
         }
+        
+        console.log('所有按钮事件绑定完成');
     }
 
     /**
@@ -168,6 +208,73 @@ class HookRegForge {
         this.parser.clear();
         this.currentPaths = [];
         this.currentRegex = '';
+    }
+
+    /**
+     * 处理文件上传
+     * @param {Event} event 文件上传事件
+     */
+    async handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // 检查文件类型
+        const allowedTypes = ['.js', '.jsx', '.ts', '.tsx', '.txt'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(fileExtension)) {
+            this.ui.showMessage('不支持的文件类型，请上传 JavaScript (.js, .jsx, .ts, .tsx) 或文本 (.txt) 文件', 'warning');
+            event.target.value = ''; // 清空文件选择
+            return;
+        }
+
+        // 检查文件大小 (最大 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            this.ui.showMessage('文件太大，请上传小于 5MB 的文件', 'warning');
+            event.target.value = ''; // 清空文件选择
+            return;
+        }
+
+        this.ui.showLoading(true);
+
+        try {
+            const content = await this.readFileContent(file);
+            this.ui.setJavaScriptCode(content);
+            this.ui.showMessage(`成功加载文件: ${file.name}`, 'success');
+            
+            // 自动验证语法
+            setTimeout(() => {
+                this.validateSyntax();
+            }, 100);
+            
+        } catch (error) {
+            this.ui.showMessage(`文件读取失败: ${error.message}`, 'error');
+        } finally {
+            this.ui.showLoading(false);
+            event.target.value = ''; // 清空文件选择，允许重新上传同一文件
+        }
+    }
+
+    /**
+     * 读取文件内容
+     * @param {File} file 文件对象
+     * @returns {Promise<string>} 文件内容
+     */
+    readFileContent(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('文件读取失败'));
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        });
     }
 
     /**
@@ -448,20 +555,103 @@ class HookRegForge {
     }
 }
 
+/**
+ * 更新调试状态
+ * @param {string} type 状态类型
+ * @param {string} status 状态文本
+ */
+function updateDebugStatus(type, status) {
+    const debugPanel = document.getElementById('debug-status');
+    const statusElement = document.getElementById(`${type}-status`);
+    
+    if (debugPanel && statusElement) {
+        debugPanel.style.display = 'block';
+        statusElement.textContent = status;
+        
+        // 3秒后隐藏调试面板（如果所有状态都正常）
+        setTimeout(() => {
+            const allStatuses = ['status-text', 'deps-status', 'buttons-status'];
+            const allGood = allStatuses.every(id => {
+                const el = document.getElementById(id);
+                return el && (el.textContent.includes('完成') || el.textContent.includes('成功'));
+            });
+            
+            if (allGood) {
+                debugPanel.style.display = 'none';
+            }
+        }, 3000);
+    }
+}
+
+/**
+ * 显示错误消息
+ * @param {string} message 错误消息
+ */
+function showErrorMessage(message) {
+    updateDebugStatus('status', '错误: ' + message);
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #dc3545;
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        z-index: 1001;
+        max-width: 300px;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        if (errorDiv.parentNode) {
+            errorDiv.parentNode.removeChild(errorDiv);
+        }
+    }, 5000);
+}
+
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
+    updateDebugStatus('status', '开始初始化...');
+    
     // 检查依赖
     if (typeof esprima === 'undefined') {
         console.error('Esprima 库未加载，请检查依赖');
+        updateDebugStatus('deps', '缺失');
+        // 尝试延迟初始化
+        setTimeout(() => {
+            if (typeof esprima !== 'undefined') {
+                updateDebugStatus('deps', '延迟加载成功');
+                initializeApp();
+            } else {
+                updateDebugStatus('deps', '加载失败');
+                showErrorMessage('依赖库加载失败，请刷新页面重试');
+            }
+        }, 1000);
         return;
     }
 
+    updateDebugStatus('deps', '正常');
+    initializeApp();
+});
+
+/**
+ * 初始化应用
+ */
+function initializeApp() {
     try {
         window.hookRegForge = new HookRegForge();
+        updateDebugStatus('status', '初始化完成');
+        updateDebugStatus('buttons', '事件已绑定');
+        console.log('HookRegForge 应用初始化成功');
     } catch (error) {
         console.error('初始化 HookRegForge 失败:', error);
+        updateDebugStatus('status', '初始化失败');
+        showErrorMessage('应用初始化失败: ' + error.message);
     }
-});
+}
 
 // 全局错误处理
 window.addEventListener('error', (event) => {
