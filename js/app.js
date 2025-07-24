@@ -54,44 +54,58 @@ class HookRegForge {
      */
     bindActionEvents() {
         // 清空按钮
-        if (this.ui.elements.clearBtn) {
-            this.ui.elements.clearBtn.addEventListener('click', () => {
+        const clearBtn = document.querySelector('[data-action="clear"]');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
                 this.clearInput();
             });
         }
 
         // 加载示例按钮
-        if (this.ui.elements.loadSampleBtn) {
-            this.ui.elements.loadSampleBtn.addEventListener('click', () => {
+        const loadSampleBtn = document.querySelector('[data-action="load-sample"]');
+        if (loadSampleBtn) {
+            loadSampleBtn.addEventListener('click', () => {
                 this.loadSampleCode();
             });
         }
 
         // 生成按钮
-        if (this.ui.elements.generateBtn) {
-            this.ui.elements.generateBtn.addEventListener('click', () => {
+        const generateBtn = document.querySelector('[data-action="generate"]');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
                 this.generateHook();
             });
         }
 
         // 复制正则按钮
-        if (this.ui.elements.copyRegexBtn) {
-            this.ui.elements.copyRegexBtn.addEventListener('click', () => {
+        const copyRegexBtn = document.querySelector('[data-action="copy-regex"]');
+        if (copyRegexBtn) {
+            copyRegexBtn.addEventListener('click', () => {
                 this.copyRegex();
             });
         }
 
         // 测试按钮
-        if (this.ui.elements.testBtn) {
-            this.ui.elements.testBtn.addEventListener('click', () => {
+        const testBtn = document.querySelector('[data-action="test"]');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
                 this.testRegex();
             });
         }
 
         // 展开AST按钮
-        if (this.ui.elements.expandAstBtn) {
-            this.ui.elements.expandAstBtn.addEventListener('click', () => {
+        const expandAstBtn = document.querySelector('[data-action="expand-ast"]');
+        if (expandAstBtn) {
+            expandAstBtn.addEventListener('click', () => {
                 this.expandAST();
+            });
+        }
+
+        // 文件上传功能
+        const fileUpload = document.getElementById('file-upload');
+        if (fileUpload) {
+            fileUpload.addEventListener('change', (e) => {
+                this.handleFileUpload(e);
             });
         }
     }
@@ -100,12 +114,13 @@ class HookRegForge {
      * 绑定配置变化事件
      */
     bindConfigEvents() {
-        const configElements = [
-            this.ui.elements.targetFunction,
-            this.ui.elements.hookType,
-            this.ui.elements.depth,
-            this.ui.elements.flexible
-        ];
+        // 直接查询配置元素
+        const targetFunction = document.querySelector('[data-field="target-function"]');
+        const hookType = document.querySelector('[data-field="hook-type"]');
+        const depth = document.querySelector('[data-field="depth"]');
+        const flexible = document.querySelector('[data-field="flexible"]');
+
+        const configElements = [targetFunction, hookType, depth, flexible];
 
         configElements.forEach(element => {
             if (element) {
@@ -120,12 +135,13 @@ class HookRegForge {
      * 绑定语法验证事件
      */
     bindValidationEvents() {
-        if (this.ui.elements.jsInput) {
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        if (jsInput) {
             const debouncedValidation = debounce(() => {
                 this.validateSyntax();
             }, APP_CONFIG.ui.debounceDelay);
 
-            this.ui.elements.jsInput.addEventListener('input', debouncedValidation);
+            jsInput.addEventListener('input', debouncedValidation);
         }
     }
 
@@ -168,6 +184,29 @@ class HookRegForge {
         this.parser.clear();
         this.currentPaths = [];
         this.currentRegex = '';
+    }
+
+    /**
+     * 处理文件上传
+     * @param {Event} event 文件上传事件
+     */
+    handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            this.ui.setJavaScriptCode(content);
+            this.ui.showMessage(`已加载文件: ${file.name}`, 'success');
+        };
+        reader.onerror = () => {
+            this.ui.showMessage('文件读取失败', 'error');
+        };
+        reader.readAsText(file);
+
+        // 清空文件输入，允许重复选择同一文件
+        event.target.value = '';
     }
 
     /**
