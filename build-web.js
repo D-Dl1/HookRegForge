@@ -7,4 +7,5 @@ esbuild.build({
   outfile: 'web/bundle.js',
   platform: 'browser',
   target: ['es2018'],
+  minify: true,
 }).catch(() => process.exit(1));
