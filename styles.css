@@ -266,6 +266,24 @@ body {
     font-size: 12px;
 }
 
+/* 文件上传按钮样式 */
+.file-upload-btn {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.file-upload-btn input[type="file"] {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.file-upload-btn:hover {
+    transform: translateY(-1px);
+}
+
 /* 按钮样式 */
 .btn {
     display: inline-flex;
