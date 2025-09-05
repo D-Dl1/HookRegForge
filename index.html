@@ -37,10 +37,16 @@
                                 <i class="fas fa-upload"></i> 上传文件
                                 <input type="file" data-field="file-input" accept=".js,.txt,.json" style="display: none;">
                             </label>
+                            <button data-action="goto-line" class="btn btn-secondary">
+                                <i class="fas fa-crosshairs"></i> 跳转到行
+                            </button>
                         </div>
                     </div>
                     <div class="editor-container">
-                        <textarea data-field="js-input" class="code-input"></textarea>
+                        <div class="code-editor">
+                            <div class="line-numbers" id="line-numbers"></div>
+                            <textarea data-field="js-input" class="code-input" id="code-textarea"></textarea>
+                        </div>
                     </div>
                 </section>
 

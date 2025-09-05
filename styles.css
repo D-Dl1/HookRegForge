@@ -166,25 +166,47 @@ body {
     position: relative;
 }
 
-#jsInput, .code-input {
-    width: 100%;
-    min-height: 500px;
-    max-height: 80vh;
-    background: var(--bg-primary);
+.code-editor {
+    display: flex;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+
+.line-numbers {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 1rem 0.5rem;
+    text-align: right;
+    user-select: none;
+    min-width: 50px;
+    border-right: 1px solid var(--border-color);
+    white-space: pre;
+    overflow: hidden;
+}
+
+#jsInput, .code-input {
+    flex: 1;
+    min-height: 500px;
+    max-height: 80vh;
+    background: transparent;
+    border: none;
+    outline: none;
     padding: 1rem;
     color: var(--text-primary);
     font-family: var(--font-mono);
     font-size: 14px;
     line-height: 1.5;
-    resize: vertical;
-    transition: border-color 0.3s ease;
+    resize: none;
     overflow-y: auto;
+    tab-size: 4;
 }
 
-#jsInput:focus {
-    outline: none;
+.code-editor:focus-within {
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
 }

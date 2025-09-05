@@ -7,6 +7,7 @@ import { APP_CONFIG, DEFAULT_CONFIG, ERROR_MESSAGES, SUCCESS_MESSAGES } from './
 import { ASTParser } from './core/parser.js';
 import { RegexGenerator } from './core/regex-generator.js';
 import { UIManager } from './ui/ui-manager.js';
+import { LineNumbers } from './ui/line-numbers.js';
 import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.js';
 
 class HookRegForge {
@@ -16,6 +17,7 @@ class HookRegForge {
         this.parser = new ASTParser();
         this.regexGenerator = new RegexGenerator();
         this.ui = new UIManager();
+        this.lineNumbers = null; // 将在DOM加载后初始化
         
         this.currentPaths = [];
         this.currentRegex = '';
@@ -33,6 +35,7 @@ class HookRegForge {
         // 等待DOM完全加载后再绑定事件
         setTimeout(() => {
             this.debugElementsStatus();
+            this.initLineNumbers();
             this.bindEvents();
             this.loadSampleCode();
             this.addAnimationStyles();
@@ -129,6 +132,18 @@ class HookRegForge {
     }
 
     /**
+     * 初始化行号功能
+     */
+    initLineNumbers() {
+        try {
+            this.lineNumbers = new LineNumbers('code-textarea', 'line-numbers');
+            console.log('✅ 行号功能初始化成功');
+        } catch (error) {
+            console.error('❌ 行号功能初始化失败:', error);
+        }
+    }
+
+    /**
      * 绑定事件
      */
     bindEvents() {
@@ -191,6 +206,12 @@ class HookRegForge {
             console.log('🎯 展开AST按钮被点击');
             this.expandAST();
         }, '展开AST按钮');
+
+        // 跳转到行按钮
+        this.bindButtonEvent('[data-action="goto-line"]', () => {
+            console.log('🎯 跳转到行按钮被点击');
+            this.showGoToLineDialog();
+        }, '跳转到行按钮');
 
         // 文件上传事件
         this.bindFileUploadEvent();
@@ -559,7 +580,20 @@ class HookRegForge {
 
         } catch (error) {
             console.error('生成Hook正则时出错:', error);
-            this.showMessage(`代码解析失败: ${error.message}`, 'error');
+            
+            // 尝试从错误信息中提取行号
+            const lineNumber = this.extractLineNumber(error.message);
+            let errorMessage = `代码解析失败: ${error.message}`;
+            
+            if (lineNumber && this.lineNumbers) {
+                errorMessage += ` (行 ${lineNumber})`;
+                // 高亮错误行
+                setTimeout(() => {
+                    this.lineNumbers.highlightLine(lineNumber);
+                }, 100);
+            }
+            
+            this.showMessage(errorMessage, 'error');
         }
     }
 
@@ -803,6 +837,31 @@ class HookRegForge {
     }
 
     /**
+     * 从错误消息中提取行号
+     */
+    extractLineNumber(errorMessage) {
+        // 尝试匹配各种行号格式
+        const patterns = [
+            /line (\d+)/i,           // "line 5"
+            /行 (\d+)/,              // "行 5"
+            /第 (\d+) 行/,           // "第 5 行"
+            /position (\d+):(\d+)/i, // "position 1:5" (行:列)
+            /\((\d+):(\d+)\)/,       // "(5:10)" (行:列)
+            /at line (\d+)/i,        // "at line 5"
+            /on line (\d+)/i         // "on line 5"
+        ];
+        
+        for (const pattern of patterns) {
+            const match = errorMessage.match(pattern);
+            if (match) {
+                return parseInt(match[1]);
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * HTML转义
      */
     escapeHtml(text) {
@@ -835,6 +894,36 @@ class HookRegForge {
             }
         `;
         document.head.appendChild(style);
+    }
+
+    /**
+     * 显示跳转到行对话框
+     */
+    showGoToLineDialog() {
+        if (!this.lineNumbers) {
+            this.showMessage('行号功能未初始化', 'error');
+            return;
+        }
+
+        const totalLines = this.lineNumbers.getLineCount();
+        const currentLine = this.lineNumbers.getCurrentLineNumber();
+        
+        const lineNumber = prompt(
+            `跳转到行号 (1-${totalLines}):\n当前在第 ${currentLine} 行`,
+            currentLine.toString()
+        );
+        
+        if (lineNumber !== null) {
+            const targetLine = parseInt(lineNumber);
+            
+            if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
+                this.showMessage(`无效的行号。请输入 1 到 ${totalLines} 之间的数字`, 'error');
+                return;
+            }
+            
+            this.lineNumbers.goToLine(targetLine);
+            this.showMessage(`已跳转到第 ${targetLine} 行`, 'success');
+        }
     }
 
     /**
