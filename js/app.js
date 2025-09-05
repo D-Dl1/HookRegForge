@@ -866,13 +866,19 @@ function initializeApp() {
     const attemptInit = (attempt = 1) => {
         if (checkEsprima()) {
             try {
+                // 检查Esprima版本，如果是fallback版本则显示警告
+                if (window.esprima.version && window.esprima.version.includes('fallback')) {
+                    console.warn('⚠️ 使用简化版Esprima解析器，功能可能受限');
+                    showFallbackWarning();
+                }
+                
                 window.hookRegForge = new HookRegForge();
                 console.log('✅ HookRegForge 初始化成功');
             } catch (error) {
                 console.error('❌ 初始化 HookRegForge 失败:', error);
             }
-        } else if (attempt < 10) {
-            // 最多尝试10次，每次间隔500ms
+        } else if (attempt < 15) {
+            // 增加到15次尝试，给CDN更多时间
             setTimeout(() => attemptInit(attempt + 1), 500);
         } else {
             console.error('❌ Esprima 库加载超时，请刷新页面重试');
@@ -882,6 +888,57 @@ function initializeApp() {
     };
 
     attemptInit();
+}
+
+// 显示Fallback警告
+function showFallbackWarning() {
+    const warningDiv = document.createElement('div');
+    warningDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(229, 192, 123, 0.1);
+            color: #e5c07b;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #e5c07b;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            z-index: 1001;
+            max-width: 350px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        ">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.2rem;">⚠️</span>
+                <strong>使用备用解析器</strong>
+            </div>
+            <p style="margin: 0; line-height: 1.4;">
+                CDN加载失败，正在使用简化版解析器。某些高级功能可能不可用。
+            </p>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: none;
+                border: none;
+                color: #e5c07b;
+                cursor: pointer;
+                font-size: 1.2rem;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+            ">×</button>
+        </div>
+    `;
+    document.body.appendChild(warningDiv);
+    
+    // 10秒后自动消失
+    setTimeout(() => {
+        if (warningDiv.parentNode) {
+            warningDiv.parentNode.removeChild(warningDiv);
+        }
+    }, 10000);
 }
 
 // 显示Esprima加载错误

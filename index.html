@@ -204,7 +204,133 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js"></script>
+    
+    <!-- Esprima 多CDN加载策略 -->
+    <script>
+        // CDN加载策略：尝试多个CDN源
+        const esprimaCDNs = [
+            'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js',
+            'https://unpkg.com/esprima@4.0.1/dist/esprima.min.js',
+            'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js',
+            'https://cdn.skypack.dev/esprima@4.0.1'
+        ];
+        
+        let esprimaLoaded = false;
+        let currentCDNIndex = 0;
+        
+        function loadEsprimaFromCDN(url, callback) {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = function() {
+                console.log('✅ Esprima loaded from:', url);
+                esprimaLoaded = true;
+                if (callback) callback(true);
+            };
+            script.onerror = function() {
+                console.warn('❌ Failed to load Esprima from:', url);
+                if (callback) callback(false);
+            };
+            document.head.appendChild(script);
+        }
+        
+        function tryNextCDN() {
+            if (currentCDNIndex < esprimaCDNs.length) {
+                const url = esprimaCDNs[currentCDNIndex];
+                console.log(`🔄 Trying CDN ${currentCDNIndex + 1}/${esprimaCDNs.length}:`, url);
+                
+                loadEsprimaFromCDN(url, function(success) {
+                    if (success) {
+                        esprimaLoaded = true;
+                    } else {
+                        currentCDNIndex++;
+                        if (currentCDNIndex < esprimaCDNs.length) {
+                            setTimeout(tryNextCDN, 1000); // 等待1秒后尝试下一个CDN
+                        } else {
+                            console.error('❌ All CDN sources failed, loading local fallback...');
+                            loadLocalEsprima();
+                        }
+                    }
+                });
+            }
+        }
+        
+        function loadLocalEsprima() {
+            // 尝试加载本地版本
+            loadEsprimaFromCDN('js/lib/esprima.min.js', function(success) {
+                if (!success) {
+                    console.error('❌ Local Esprima also failed to load');
+                    showEsprimaLoadError();
+                }
+            });
+        }
+        
+        function showEsprimaLoadError() {
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: #1a1f25;
+                    color: #e6e6e6;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    border: 1px solid #3c4043;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                    z-index: 10000;
+                    text-align: center;
+                    max-width: 500px;
+                    font-family: 'Inter', sans-serif;
+                ">
+                    <div style="color: #e06c75; font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h3 style="margin-bottom: 1rem; color: #e6e6e6;">依赖库加载失败</h3>
+                    <p style="margin-bottom: 1rem; line-height: 1.5;">
+                        Esprima库未能从任何CDN源加载成功。这可能是由于：<br>
+                        • 网络连接问题<br>
+                        • CDN服务暂时不可用<br>
+                        • 防火墙或代理阻止了请求
+                    </p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="location.reload()" style="
+                            background: #61dafb;
+                            color: #0f1419;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">重新加载</button>
+                        <button onclick="window.open('cdn-status.html', '_blank')" style="
+                            background: #98c379;
+                            color: #0f1419;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">检查CDN状态</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                            background: transparent;
+                            color: #abb2bf;
+                            border: 1px solid #3c4043;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        ">关闭</button>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: #6c7086;">
+                        建议：检查网络连接后重新加载页面
+                    </p>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+        }
+        
+        // 开始加载Esprima
+        tryNextCDN();
+    </script>
+    
     <script src="js/fallback-events.js"></script>
     <script type="module" src="js/app.js"></script>
 </body>
