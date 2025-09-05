@@ -180,13 +180,15 @@ body {
     font-family: var(--font-mono);
     font-size: 14px;
     line-height: 1.5;
-    padding: 1rem 0.5rem;
+    padding: 1rem 0.75rem 1rem 0.5rem;
     text-align: right;
     user-select: none;
-    min-width: 50px;
+    min-width: 60px;
     border-right: 1px solid var(--border-color);
     white-space: pre;
     overflow: hidden;
+    flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 #jsInput, .code-input {
