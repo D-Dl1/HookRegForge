@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Pages CDN测试 - HookRegForge</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f1419;
+            color: #e6e6e6;
+            padding: 2rem;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-card {
+            background: #1a1f25;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid #3c4043;
+        }
+        .status-loading {
+            color: #e5c07b;
+        }
+        .status-success {
+            color: #98c379;
+        }
+        .status-error {
+            color: #e06c75;
+        }
+        .btn {
+            background: #61dafb;
+            color: #0f1419;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        .btn:hover {
+            background: #4fa8c5;
+        }
+        pre {
+            background: #282c34;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 GitHub Pages CDN测试</h1>
+        <p>专门针对GitHub Pages环境的CDN加载测试</p>
+        
+        <div class="test-card">
+            <h2>环境检测</h2>
+            <div id="environment-info">检测中...</div>
+        </div>
+        
+        <div class="test-card">
+            <h2>CDN测试结果</h2>
+            <div id="cdn-results">准备测试...</div>
+        </div>
+        
+        <div class="test-card">
+            <h2>Esprima加载状态</h2>
+            <div id="esprima-status">未加载</div>
+            <button class="btn" onclick="testEsprima()">测试Esprima</button>
+        </div>
+        
+        <div class="test-card">
+            <h2>解决方案</h2>
+            <div id="solutions">
+                <h3>GitHub Pages特有问题解决方案：</h3>
+                <ul>
+                    <li><strong>HTTPS混合内容：</strong>确保所有CDN链接都使用HTTPS</li>
+                    <li><strong>仓库设置：</strong>在GitHub仓库设置中启用"Enforce HTTPS"</li>
+                    <li><strong>缓存问题：</strong>GitHub Pages有缓存延迟，可能需要等待几分钟</li>
+                    <li><strong>Content-Type：</strong>某些CDN在GitHub Pages上可能有头部问题</li>
+                </ul>
+                <button class="btn" onclick="window.open('https://github.com/settings/pages', '_blank')">
+                    打开GitHub Pages设置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检测环境信息
+        function detectEnvironment() {
+            const info = {
+                isGitHubPages: window.location.hostname.includes('github.io'),
+                protocol: window.location.protocol,
+                hostname: window.location.hostname,
+                userAgent: navigator.userAgent,
+                isSecure: window.location.protocol === 'https:',
+                hasServiceWorker: 'serviceWorker' in navigator,
+                cookiesEnabled: navigator.cookieEnabled
+            };
+            
+            const envDiv = document.getElementById('environment-info');
+            envDiv.innerHTML = `
+                <div class="${info.isGitHubPages ? 'status-success' : 'status-error'}">
+                    <strong>GitHub Pages:</strong> ${info.isGitHubPages ? '是' : '否'}
+                </div>
+                <div class="${info.isSecure ? 'status-success' : 'status-error'}">
+                    <strong>协议:</strong> ${info.protocol}
+                </div>
+                <div><strong>域名:</strong> ${info.hostname}</div>
+                <div><strong>浏览器:</strong> ${navigator.userAgent.split(' ')[0]}</div>
+            `;
+            
+            return info;
+        }
+        
+        // 测试CDN
+        async function testCDNs() {
+            const cdns = [
+                'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js',
+                'https://unpkg.com/esprima@4.0.1/dist/esprima.min.js',
+                'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js'
+            ];
+            
+            const resultsDiv = document.getElementById('cdn-results');
+            resultsDiv.innerHTML = '<div class="status-loading">测试中...</div>';
+            
+            let results = [];
+            
+            for (let i = 0; i < cdns.length; i++) {
+                const cdn = cdns[i];
+                const startTime = Date.now();
+                
+                try {
+                    const response = await fetch(cdn, { method: 'HEAD' });
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+                    
+                    results.push({
+                        url: cdn,
+                        success: response.ok,
+                        status: response.status,
+                        responseTime: responseTime,
+                        contentType: response.headers.get('content-type')
+                    });
+                } catch (error) {
+                    results.push({
+                        url: cdn,
+                        success: false,
+                        error: error.message,
+                        responseTime: null
+                    });
+                }
+            }
+            
+            // 显示结果
+            const resultHTML = results.map(result => `
+                <div style="margin: 0.5rem 0; padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.05);">
+                    <div class="${result.success ? 'status-success' : 'status-error'}">
+                        ${result.success ? '✅' : '❌'} ${new URL(result.url).hostname}
+                    </div>
+                    <div style="font-size: 0.9rem; color: #abb2bf;">
+                        ${result.success ? 
+                            `状态: ${result.status} | 响应时间: ${result.responseTime}ms | Content-Type: ${result.contentType}` :
+                            `错误: ${result.error || '网络错误'}`
+                        }
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = resultHTML;
+            
+            return results;
+        }
+        
+        // 测试Esprima
+        function testEsprima() {
+            const statusDiv = document.getElementById('esprima-status');
+            statusDiv.innerHTML = '<div class="status-loading">测试中...</div>';
+            
+            // 创建测试脚本
+            const script = document.createElement('script');
+            script.onload = function() {
+                if (typeof esprima !== 'undefined') {
+                    try {
+                        const testCode = 'function test() { return "hello"; }';
+                        const ast = esprima.parseScript(testCode);
+                        statusDiv.innerHTML = `
+                            <div class="status-success">✅ Esprima加载成功！</div>
+                            <div>版本: ${esprima.version || '未知'}</div>
+                            <pre>${JSON.stringify(ast, null, 2).substring(0, 200)}...</pre>
+                        `;
+                    } catch (error) {
+                        statusDiv.innerHTML = `
+                            <div class="status-error">❌ Esprima加载但解析失败</div>
+                            <div>错误: ${error.message}</div>
+                        `;
+                    }
+                } else {
+                    statusDiv.innerHTML = '<div class="status-error">❌ Esprima未定义</div>';
+                }
+            };
+            
+            script.onerror = function() {
+                statusDiv.innerHTML = '<div class="status-error">❌ Esprima脚本加载失败</div>';
+            };
+            
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js';
+            document.head.appendChild(script);
+        }
+        
+        // 页面加载时运行检测
+        window.addEventListener('load', function() {
+            detectEnvironment();
+            testCDNs();
+        });
+    </script>
+</body>
+</html>

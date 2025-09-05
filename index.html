@@ -208,11 +208,13 @@
     <!-- Esprima 多CDN加载策略 -->
     <script>
         // CDN加载策略：尝试多个CDN源
+        // GitHub Pages优化的CDN列表 - 确保所有都是HTTPS
         const esprimaCDNs = [
             'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js',
             'https://unpkg.com/esprima@4.0.1/dist/esprima.min.js',
             'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js',
-            'https://cdn.skypack.dev/esprima@4.0.1'
+            // 移除Skypack，因为它在GitHub Pages上可能有问题
+            'https://cdn.jsdelivr.net/npm/esprima@4.0.1/esprima.min.js'
         ];
         
         let esprimaLoaded = false;
