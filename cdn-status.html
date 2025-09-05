@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN状态检查 - HookRegForge</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f1419;
+            color: #e6e6e6;
+            padding: 2rem;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status-card {
+            background: #1a1f25;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid #3c4043;
+        }
+        .status-loading {
+            color: #e5c07b;
+        }
+        .status-success {
+            color: #98c379;
+        }
+        .status-error {
+            color: #e06c75;
+        }
+        .btn {
+            background: #61dafb;
+            color: #0f1419;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        .btn:hover {
+            background: #4fa8c5;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #3c4043;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #61dafb;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        pre {
+            background: #282c34;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 CDN状态检查</h1>
+        <p>检查各个CDN源的Esprima库加载状态</p>
+        
+        <div class="status-card">
+            <h2>测试进度</h2>
+            <div class="progress-bar">
+                <div id="progress" class="progress-fill"></div>
+            </div>
+            <div id="status">准备开始测试...</div>
+        </div>
+        
+        <div class="status-card">
+            <h2>CDN源测试结果</h2>
+            <div id="results"></div>
+        </div>
+        
+        <div class="status-card">
+            <h2>推荐解决方案</h2>
+            <div id="recommendations">
+                <p>正在分析最佳CDN源...</p>
+            </div>
+        </div>
+        
+        <div class="status-card">
+            <h2>操作</h2>
+            <button class="btn" onclick="startTest()">重新测试</button>
+            <button class="btn" onclick="goToApp()">返回应用</button>
+            <button class="btn" onclick="showDiagnostics()">显示诊断信息</button>
+        </div>
+        
+        <div id="diagnostics" class="status-card" style="display: none;">
+            <h2>诊断信息</h2>
+            <pre id="diagnostic-info"></pre>
+        </div>
+    </div>
+
+    <script>
+        const cdnSources = [
+            {
+                name: 'Cloudflare CDN',
+                url: 'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js',
+                description: '全球最大的CDN网络之一'
+            },
+            {
+                name: 'unpkg CDN',
+                url: 'https://unpkg.com/esprima@4.0.1/dist/esprima.min.js',
+                description: 'npm包的快速CDN'
+            },
+            {
+                name: 'jsDelivr CDN',
+                url: 'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js',
+                description: '开源CDN，支持npm和GitHub'
+            },
+            {
+                name: 'Skypack CDN',
+                url: 'https://cdn.skypack.dev/esprima@4.0.1',
+                description: '现代ES模块CDN'
+            }
+        ];
+        
+        let testResults = [];
+        let currentTest = 0;
+        
+        function updateProgress() {
+            const progress = document.getElementById('progress');
+            const percentage = (currentTest / cdnSources.length) * 100;
+            progress.style.width = percentage + '%';
+        }
+        
+        function updateStatus(message, className = '') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = className;
+        }
+        
+        function addResult(source, success, error = null, responseTime = null) {
+            testResults.push({ source, success, error, responseTime });
+            
+            const results = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.style.cssText = 'margin: 0.5rem 0; padding: 0.5rem; border-radius: 6px; background: rgba(255,255,255,0.05);';
+            
+            const statusIcon = success ? '✅' : '❌';
+            const statusClass = success ? 'status-success' : 'status-error';
+            const timeInfo = responseTime ? ` (${responseTime}ms)` : '';
+            
+            resultDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong class="${statusClass}">${statusIcon} ${source.name}</strong>
+                        <div style="font-size: 0.9rem; color: #abb2bf; margin-top: 0.2rem;">
+                            ${source.description}
+                        </div>
+                    </div>
+                    <div class="${statusClass}" style="font-size: 0.9rem;">
+                        ${success ? '可用' + timeInfo : '失败'}
+                    </div>
+                </div>
+                ${error ? `<div style="font-size: 0.8rem; color: #e06c75; margin-top: 0.5rem;">错误: ${error}</div>` : ''}
+            `;
+            
+            results.appendChild(resultDiv);
+        }
+        
+        function testCDN(source) {
+            return new Promise((resolve) => {
+                const startTime = Date.now();
+                const script = document.createElement('script');
+                const timeout = setTimeout(() => {
+                    resolve({ success: false, error: '超时', responseTime: null });
+                }, 10000);
+                
+                script.onload = function() {
+                    clearTimeout(timeout);
+                    const responseTime = Date.now() - startTime;
+                    script.remove();
+                    resolve({ success: true, error: null, responseTime });
+                };
+                
+                script.onerror = function() {
+                    clearTimeout(timeout);
+                    script.remove();
+                    resolve({ success: false, error: '网络错误', responseTime: null });
+                };
+                
+                script.src = source.url;
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function startTest() {
+            testResults = [];
+            currentTest = 0;
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('recommendations').innerHTML = '<p>正在分析最佳CDN源...</p>';
+            
+            updateStatus('开始测试CDN源...', 'status-loading');
+            
+            for (const source of cdnSources) {
+                updateStatus(`正在测试 ${source.name}...`, 'status-loading');
+                
+                const result = await testCDN(source);
+                addResult(source, result.success, result.error, result.responseTime);
+                
+                currentTest++;
+                updateProgress();
+            }
+            
+            updateStatus('测试完成', 'status-success');
+            generateRecommendations();
+        }
+        
+        function generateRecommendations() {
+            const recommendations = document.getElementById('recommendations');
+            const successfulSources = testResults.filter(r => r.success);
+            
+            if (successfulSources.length === 0) {
+                recommendations.innerHTML = `
+                    <div class="status-error">
+                        <h3>❌ 所有CDN源均不可用</h3>
+                        <p>可能的原因：</p>
+                        <ul>
+                            <li>网络连接问题</li>
+                            <li>防火墙或代理阻止了请求</li>
+                            <li>所在地区的网络限制</li>
+                        </ul>
+                        <p><strong>建议：</strong></p>
+                        <ul>
+                            <li>检查网络连接</li>
+                            <li>尝试使用VPN</li>
+                            <li>联系网络管理员</li>
+                            <li>使用本地版本的库文件</li>
+                        </ul>
+                    </div>
+                `;
+            } else {
+                // 按响应时间排序
+                successfulSources.sort((a, b) => a.responseTime - b.responseTime);
+                const fastest = successfulSources[0];
+                
+                recommendations.innerHTML = `
+                    <div class="status-success">
+                        <h3>✅ 找到可用的CDN源</h3>
+                        <p><strong>推荐使用：</strong> ${fastest.source.name} (${fastest.responseTime}ms)</p>
+                        <p>可用源列表：</p>
+                        <ul>
+                            ${successfulSources.map(r => 
+                                `<li>${r.source.name} - ${r.responseTime}ms</li>`
+                            ).join('')}
+                        </ul>
+                        <p>应用将自动选择最快的可用源。</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function goToApp() {
+            window.location.href = 'index.html';
+        }
+        
+        function showDiagnostics() {
+            const diagnostics = document.getElementById('diagnostics');
+            const info = document.getElementById('diagnostic-info');
+            
+            const diagnosticData = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                timestamp: new Date().toISOString(),
+                testResults: testResults,
+                location: {
+                    href: window.location.href,
+                    origin: window.location.origin
+                }
+            };
+            
+            info.textContent = JSON.stringify(diagnosticData, null, 2);
+            diagnostics.style.display = 'block';
+        }
+        
+        // 页面加载完成后自动开始测试
+        window.addEventListener('load', startTest);
+    </script>
+</body>
+</html>

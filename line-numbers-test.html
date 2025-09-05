@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行号功能测试</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { padding: 2rem; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 2rem 0; }
+        .btn { margin: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 行号功能测试</h1>
+        
+        <div class="test-section">
+            <h2>代码编辑器</h2>
+            <div class="editor-container">
+                <div class="code-editor">
+                    <div class="line-numbers" id="line-numbers"></div>
+                    <textarea id="code-textarea" class="code-input" placeholder="在这里输入代码进行测试...
+
+尝试以下操作：
+1. 输入多行代码
+2. 使用Tab键缩进
+3. 滚动查看同步效果
+4. 测试跳转功能"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>测试操作</h2>
+            <button class="btn btn-primary" onclick="testGoToLine()">跳转到行5</button>
+            <button class="btn btn-primary" onclick="testHighlight()">高亮行3</button>
+            <button class="btn btn-secondary" onclick="addTestCode()">添加测试代码</button>
+            <button class="btn btn-secondary" onclick="clearCode()">清空代码</button>
+            <button class="btn btn-secondary" onclick="showInfo()">显示信息</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>测试结果</h2>
+            <div id="test-results" style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; font-family: monospace;">
+                等待测试...
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { LineNumbers } from './js/ui/line-numbers.js';
+        
+        let lineNumbers;
+        
+        // 初始化
+        try {
+            lineNumbers = new LineNumbers('code-textarea', 'line-numbers');
+            updateResults('✅ 行号功能初始化成功');
+        } catch (error) {
+            updateResults('❌ 初始化失败: ' + error.message);
+        }
+        
+        // 测试函数
+        window.testGoToLine = function() {
+            if (lineNumbers) {
+                const success = lineNumbers.goToLine(5);
+                updateResults(success ? '✅ 跳转到第5行成功' : '❌ 跳转失败');
+            }
+        };
+        
+        window.testHighlight = function() {
+            if (lineNumbers) {
+                lineNumbers.highlightLine(3);
+                updateResults('✅ 高亮第3行');
+            }
+        };
+        
+        window.addTestCode = function() {
+            const textarea = document.getElementById('code-textarea');
+            textarea.value = `function testFunction() {
+    console.log("第2行");
+    if (true) {
+        console.log("第4行");
+        for (let i = 0; i < 10; i++) {
+            console.log("第6行: " + i);
+        }
+    }
+    return "第9行";
+}
+
+// 第11行注释
+const obj = {
+    method: function() {
+        console.log("第14行");
+    }
+};
+
+obj.method();`;
+            
+            // 手动触发更新
+            textarea.dispatchEvent(new Event('input'));
+            updateResults('✅ 测试代码已添加');
+        };
+        
+        window.clearCode = function() {
+            const textarea = document.getElementById('code-textarea');
+            textarea.value = '';
+            textarea.dispatchEvent(new Event('input'));
+            updateResults('✅ 代码已清空');
+        };
+        
+        window.showInfo = function() {
+            if (lineNumbers) {
+                const currentLine = lineNumbers.getCurrentLineNumber();
+                const totalLines = lineNumbers.getLineCount();
+                updateResults(`📊 当前行: ${currentLine}, 总行数: ${totalLines}`);
+            }
+        };
+        
+        function updateResults(message) {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `[${timestamp}] ${message}<br>`;
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        // 监听编辑器事件
+        const textarea = document.getElementById('code-textarea');
+        textarea.addEventListener('input', () => {
+            if (lineNumbers) {
+                const totalLines = lineNumbers.getLineCount();
+                updateResults(`📝 内容变化，当前总行数: ${totalLines}`);
+            }
+        });
+        
+        textarea.addEventListener('scroll', () => {
+            updateResults(`📜 滚动位置: ${textarea.scrollTop}px`);
+        });
+    </script>
+</body>
+</html>

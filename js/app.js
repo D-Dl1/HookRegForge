@@ -7,6 +7,7 @@ import { APP_CONFIG, DEFAULT_CONFIG, ERROR_MESSAGES, SUCCESS_MESSAGES } from './
 import { ASTParser } from './core/parser.js';
 import { RegexGenerator } from './core/regex-generator.js';
 import { UIManager } from './ui/ui-manager.js';
+import { SimpleLineNumbers } from './ui/simple-line-numbers.js';
 import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.js';
 
 class HookRegForge {
@@ -16,6 +17,7 @@ class HookRegForge {
         this.parser = new ASTParser();
         this.regexGenerator = new RegexGenerator();
         this.ui = new UIManager();
+        this.lineNumbers = null; // 将在DOM加载后初始化
         
         this.currentPaths = [];
         this.currentRegex = '';
@@ -32,11 +34,19 @@ class HookRegForge {
         
         // 等待DOM完全加载后再绑定事件
         setTimeout(() => {
-            this.debugElementsStatus();
-            this.bindEvents();
-            this.loadSampleCode();
-            this.addAnimationStyles();
-            console.log(`✅ ${APP_CONFIG.name} v${APP_CONFIG.version} 初始化完成`);
+            try {
+                this.debugElementsStatus();
+                this.bindEvents();
+                this.loadSampleCode();
+                this.addAnimationStyles();
+                
+                // 行号功能放在最后，即使失败也不影响其他功能
+                this.initLineNumbers();
+                
+                console.log(`✅ ${APP_CONFIG.name} v${APP_CONFIG.version} 初始化完成`);
+            } catch (error) {
+                console.error('❌ 应用初始化出错，但尝试继续运行:', error);
+            }
         }, 100);
     }
 
@@ -129,6 +139,51 @@ class HookRegForge {
     }
 
     /**
+     * 初始化行号功能
+     */
+    initLineNumbers() {
+        try {
+            this.lineNumbers = new SimpleLineNumbers('code-textarea', 'line-numbers');
+            console.log('✅ 简单行号功能初始化成功');
+            this.useLineNumbers = true;
+        } catch (error) {
+            console.error('❌ 行号功能初始化失败，切换到简单编辑器:', error);
+            this.switchToSimpleEditor();
+            this.lineNumbers = null;
+            this.useLineNumbers = false;
+        }
+    }
+
+    /**
+     * 切换到简单编辑器
+     */
+    switchToSimpleEditor() {
+        try {
+            const lineNumberEditor = document.getElementById('line-number-editor');
+            const simpleEditor = document.getElementById('simple-textarea');
+            const complexTextarea = document.getElementById('code-textarea');
+            
+            if (lineNumberEditor && simpleEditor && complexTextarea) {
+                // 复制内容
+                simpleEditor.value = complexTextarea.value;
+                
+                // 切换显示
+                lineNumberEditor.style.display = 'none';
+                simpleEditor.style.display = 'block';
+                
+                // 更新选择器
+                simpleEditor.setAttribute('data-field', 'js-input');
+                complexTextarea.removeAttribute('data-field');
+                
+                console.log('✅ 已切换到简单编辑器');
+                this.showMessage('已切换到简单编辑器模式', 'info');
+            }
+        } catch (error) {
+            console.error('切换编辑器失败:', error);
+        }
+    }
+
+    /**
      * 绑定事件
      */
     bindEvents() {
@@ -142,6 +197,9 @@ class HookRegForge {
         
         // 语法验证事件
         this.bindValidationEvents();
+        
+        // 标签页切换事件
+        this.bindTabEvents();
         
         console.log('✅ 事件绑定完成');
     }
@@ -188,6 +246,12 @@ class HookRegForge {
             console.log('🎯 展开AST按钮被点击');
             this.expandAST();
         }, '展开AST按钮');
+
+        // 跳转到行按钮
+        this.bindButtonEvent('[data-action="goto-line"]', () => {
+            console.log('🎯 跳转到行按钮被点击');
+            this.showGoToLineDialog();
+        }, '跳转到行按钮');
 
         // 文件上传事件
         this.bindFileUploadEvent();
@@ -261,6 +325,63 @@ class HookRegForge {
                 console.log(`✅ 配置字段事件绑定成功: ${selector}`);
             } else {
                 console.warn(`⚠️ 配置字段未找到: ${selector}`);
+            }
+        });
+    }
+
+    /**
+     * 绑定标签页事件
+     */
+    bindTabEvents() {
+        console.log('🔗 绑定标签页事件...');
+        
+        // 查找所有标签页按钮
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        const tabPanels = document.querySelectorAll('[data-tab-panel]');
+        
+        console.log(`找到 ${tabButtons.length} 个标签页按钮，${tabPanels.length} 个标签页面板`);
+        
+        tabButtons.forEach((button, index) => {
+            const tabName = button.dataset.tab;
+            console.log(`绑定标签页: ${tabName}`);
+            
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log(`🎯 标签页 "${tabName}" 被点击`);
+                this.switchTab(tabName);
+            });
+        });
+        
+        // 默认激活第一个标签页
+        if (tabButtons.length > 0) {
+            this.switchTab('ast');
+        }
+    }
+
+    /**
+     * 切换标签页
+     * @param {string} tabName 标签页名称
+     */
+    switchTab(tabName) {
+        console.log(`🔄 切换到标签页: ${tabName}`);
+        
+        // 更新按钮状态
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        tabButtons.forEach(button => {
+            button.classList.remove('active');
+            button.setAttribute('aria-selected', 'false');
+            if (button.dataset.tab === tabName) {
+                button.classList.add('active');
+                button.setAttribute('aria-selected', 'true');
+            }
+        });
+
+        // 更新面板显示
+        const tabPanels = document.querySelectorAll('[data-tab-panel]');
+        tabPanels.forEach(panel => {
+            panel.classList.remove('active');
+            if (panel.dataset.tabPanel === tabName) {
+                panel.classList.add('active');
             }
         });
     }
@@ -394,6 +515,12 @@ class HookRegForge {
                 jsInput.value = content;
                 this.showMessage(`文件 "${file.name}" 上传成功`, 'success');
                 
+                // 重置文件输入以允许重复上传同一文件
+                const fileInput = document.querySelector('[data-field="file-input"]');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                
                 // 自动验证语法
                 setTimeout(() => {
                     this.validateSyntax();
@@ -493,7 +620,26 @@ class HookRegForge {
 
         } catch (error) {
             console.error('生成Hook正则时出错:', error);
-            this.showMessage(`代码解析失败: ${error.message}`, 'error');
+            
+            // 尝试从错误信息中提取行号
+            const lineNumber = this.extractLineNumber(error.message);
+            let errorMessage = `代码解析失败: ${error.message}`;
+            
+            if (lineNumber) {
+                errorMessage += ` (行 ${lineNumber})`;
+                // 尝试高亮错误行
+                if (this.lineNumbers) {
+                    setTimeout(() => {
+                        try {
+                            this.lineNumbers.highlightLine(lineNumber);
+                        } catch (e) {
+                            console.warn('无法高亮错误行:', e);
+                        }
+                    }, 100);
+                }
+            }
+            
+            this.showMessage(errorMessage, 'error');
         }
     }
 
@@ -502,10 +648,49 @@ class HookRegForge {
      */
     displayAST(ast) {
         const astOutput = document.querySelector('[data-output="ast"]');
-        if (astOutput) {
-            const formattedAst = JSON.stringify(ast, null, 2);
+        if (!astOutput) return;
+
+        try {
+            // 生成简化的AST用于初始显示
+            const simplifiedAst = this.simplifyAST(ast, 3); // 限制深度为3
+            const formattedAst = JSON.stringify(simplifiedAst, null, 2);
             astOutput.innerHTML = `<code class="language-json">${this.escapeHtml(formattedAst)}</code>`;
+            
+            // 应用语法高亮
+            if (window.Prism) {
+                Prism.highlightElement(astOutput.querySelector('code'));
+            }
+        } catch (error) {
+            console.error('显示AST时出错:', error);
+            astOutput.innerHTML = `<code>显示AST时出错: ${this.escapeHtml(error.message)}</code>`;
         }
+    }
+
+    /**
+     * 简化AST用于显示
+     */
+    simplifyAST(obj, maxDepth, currentDepth = 0) {
+        if (currentDepth >= maxDepth) {
+            return typeof obj === 'object' && obj !== null ? '[...]' : obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.simplifyAST(item, maxDepth, currentDepth + 1));
+        }
+
+        if (typeof obj === 'object' && obj !== null) {
+            const simplified = {};
+            for (const [key, value] of Object.entries(obj)) {
+                // 跳过一些冗余属性
+                if (key === 'parent' || key === '_parent' || key === 'range' || key === 'loc') {
+                    continue;
+                }
+                simplified[key] = this.simplifyAST(value, maxDepth, currentDepth + 1);
+            }
+            return simplified;
+        }
+
+        return obj;
     }
 
     /**
@@ -525,18 +710,35 @@ class HookRegForge {
                 return;
             }
 
-            const pathsHtml = paths.map(path => `
+            const pathsHtml = paths.map((path, index) => `
                 <div class="path-item">
-                    <div class="path-name">${this.escapeHtml(path.path)}</div>
+                    <div class="path-header">
+                        <div class="path-name">${this.escapeHtml(path.path)}</div>
+                        <div class="path-badge path-type-${path.type}">${this.getTypeDisplayName(path.type)}</div>
+                    </div>
                     <div class="path-details">
-                        <span class="path-type">${path.type}</span>
-                        ${path.context ? ` • <span class="path-context">上下文: ${path.context}</span>` : ''}
+                        ${path.context ? `<span class="path-context">上下文: ${path.context}</span>` : ''}
+                        ${path.parameters !== undefined ? ` • <span class="path-params">参数: ${path.parameters}</span>` : ''}
+                        ${path.arguments !== undefined ? ` • <span class="path-args">实参: ${path.arguments}</span>` : ''}
+                        ${path.computed ? ' • <span class="path-computed">计算属性</span>' : ''}
                     </div>
                 </div>
             `).join('');
 
             pathsList.innerHTML = pathsHtml;
         }
+    }
+
+    /**
+     * 获取类型显示名称
+     */
+    getTypeDisplayName(type) {
+        const typeNames = {
+            function: '函数',
+            method: '方法',
+            property: '属性'
+        };
+        return typeNames[type] || type;
     }
 
     /**
@@ -547,10 +749,24 @@ class HookRegForge {
         const regexExplanation = document.querySelector('[data-output="regex-explanation"]');
         
         if (regexOutput) {
-            regexOutput.innerHTML = `<code class="language-regex">${this.escapeHtml(regex)}</code>`;
+            if (regex) {
+                regexOutput.innerHTML = `<code class="language-regex">${this.escapeHtml(regex)}</code>`;
+                
+                // 应用语法高亮
+                if (window.Prism) {
+                    Prism.highlightElement(regexOutput.querySelector('code'));
+                }
+            } else {
+                regexOutput.innerHTML = '<code>生成的正则表达式将在这里显示...</code>';
+            }
         }
+        
         if (regexExplanation) {
-            regexExplanation.innerHTML = explanation;
+            if (explanation) {
+                regexExplanation.innerHTML = explanation;
+            } else {
+                regexExplanation.innerHTML = '<p>正则表达式的详细解释将在这里显示...</p>';
+            }
         }
     }
 
@@ -633,8 +849,62 @@ class HookRegForge {
             return;
         }
 
-        this.displayAST(ast);
-        this.showMessage('AST已展开显示', 'success');
+        // 展开显示完整的AST
+        this.displayExpandedAST(ast);
+        this.switchTab('ast'); // 切换到AST标签页
+        this.showMessage('AST已完全展开显示', 'success');
+    }
+
+    /**
+     * 显示完全展开的AST
+     */
+    displayExpandedAST(ast) {
+        const astOutput = document.querySelector('[data-output="ast"]');
+        if (!astOutput) return;
+
+        try {
+            // 生成完整的JSON字符串，不限制深度
+            const fullAstJson = JSON.stringify(ast, (key, value) => {
+                // 过滤掉循环引用和一些冗余属性
+                if (key === 'parent' || key === '_parent') return undefined;
+                return value;
+            }, 2);
+
+            astOutput.innerHTML = `<code class="language-json">${this.escapeHtml(fullAstJson)}</code>`;
+            
+            // 应用语法高亮
+            if (window.Prism) {
+                Prism.highlightElement(astOutput.querySelector('code'));
+            }
+        } catch (error) {
+            console.error('展开AST时出错:', error);
+            astOutput.innerHTML = `<code>展开AST时出错: ${this.escapeHtml(error.message)}</code>`;
+        }
+    }
+
+    /**
+     * 从错误消息中提取行号
+     */
+    extractLineNumber(errorMessage) {
+        // 尝试匹配各种行号格式
+        const patterns = [
+            /line (\d+)/i,           // "line 5"
+            /行 (\d+)/,              // "行 5"
+            /第 (\d+) 行/,           // "第 5 行"
+            /position (\d+):(\d+)/i, // "position 1:5" (行:列)
+            /\((\d+):(\d+)\)/,       // "(5:10)" (行:列)
+            /at line (\d+)/i,        // "at line 5"
+            /on line (\d+)/i         // "on line 5"
+        ];
+        
+        for (const pattern of patterns) {
+            const match = errorMessage.match(pattern);
+            if (match) {
+                return parseInt(match[1]);
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -673,6 +943,44 @@ class HookRegForge {
     }
 
     /**
+     * 显示跳转到行对话框
+     */
+    showGoToLineDialog() {
+        try {
+            if (!this.lineNumbers) {
+                this.showMessage('行号功能未启用', 'warning');
+                return;
+            }
+
+            const totalLines = this.lineNumbers.getLineCount();
+            const currentLine = this.lineNumbers.getCurrentLineNumber();
+            
+            const lineNumber = prompt(
+                `跳转到行号 (1-${totalLines}):\n当前在第 ${currentLine} 行`,
+                currentLine.toString()
+            );
+            
+            if (lineNumber !== null) {
+                const targetLine = parseInt(lineNumber);
+                
+                if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
+                    this.showMessage(`无效的行号。请输入 1 到 ${totalLines} 之间的数字`, 'error');
+                    return;
+                }
+                
+                if (this.lineNumbers.goToLine(targetLine)) {
+                    this.showMessage(`已跳转到第 ${targetLine} 行`, 'success');
+                } else {
+                    this.showMessage('跳转失败', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('跳转到行功能出错:', error);
+            this.showMessage('跳转功能暂时不可用', 'error');
+        }
+    }
+
+    /**
      * 获取应用状态
      */
     getState() {
@@ -689,18 +997,126 @@ class HookRegForge {
 function initializeApp() {
     console.log('🚀 准备初始化 HookRegForge...');
     
-    // 检查依赖
-    if (typeof esprima === 'undefined') {
-        console.error('❌ Esprima 库未加载，请检查依赖');
-        return;
-    }
+    // 检查依赖 - 等待一段时间让脚本加载
+    const checkEsprima = () => {
+        if (typeof esprima === 'undefined') {
+            console.warn('⏳ Esprima 库尚未加载，等待中...');
+            return false;
+        }
+        return true;
+    };
 
-    try {
-        window.hookRegForge = new HookRegForge();
-        console.log('✅ HookRegForge 初始化成功');
-    } catch (error) {
-        console.error('❌ 初始化 HookRegForge 失败:', error);
-    }
+    const attemptInit = (attempt = 1) => {
+        if (checkEsprima()) {
+            try {
+                // 检查Esprima版本，如果是fallback版本则显示警告
+                if (window.esprima.version && window.esprima.version.includes('fallback')) {
+                    console.warn('⚠️ 使用简化版Esprima解析器，功能可能受限');
+                    showFallbackWarning();
+                }
+                
+                window.hookRegForge = new HookRegForge();
+                console.log('✅ HookRegForge 初始化成功');
+            } catch (error) {
+                console.error('❌ 初始化 HookRegForge 失败:', error);
+            }
+        } else if (attempt < 15) {
+            // 增加到15次尝试，给CDN更多时间
+            setTimeout(() => attemptInit(attempt + 1), 500);
+        } else {
+            console.error('❌ Esprima 库加载超时，请刷新页面重试');
+            // 显示错误消息给用户
+            showEsprimaError();
+        }
+    };
+
+    attemptInit();
+}
+
+// 显示Fallback警告
+function showFallbackWarning() {
+    const warningDiv = document.createElement('div');
+    warningDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(229, 192, 123, 0.1);
+            color: #e5c07b;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #e5c07b;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            z-index: 1001;
+            max-width: 350px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        ">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.2rem;">⚠️</span>
+                <strong>使用备用解析器</strong>
+            </div>
+            <p style="margin: 0; line-height: 1.4;">
+                CDN加载失败，正在使用简化版解析器。某些高级功能可能不可用。
+            </p>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: none;
+                border: none;
+                color: #e5c07b;
+                cursor: pointer;
+                font-size: 1.2rem;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+            ">×</button>
+        </div>
+    `;
+    document.body.appendChild(warningDiv);
+    
+    // 10秒后自动消失
+    setTimeout(() => {
+        if (warningDiv.parentNode) {
+            warningDiv.parentNode.removeChild(warningDiv);
+        }
+    }, 10000);
+}
+
+// 显示Esprima加载错误
+function showEsprimaError() {
+    const errorDiv = document.createElement('div');
+    errorDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 2rem;
+            border-radius: var(--border-radius-large);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-large);
+            z-index: 10000;
+            text-align: center;
+            max-width: 400px;
+        ">
+            <i class="fas fa-exclamation-triangle" style="color: var(--accent-error); font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3 style="margin-bottom: 1rem;">依赖库加载失败</h3>
+            <p style="margin-bottom: 1rem;">Esprima库未能正确加载，这可能是网络问题或CDN问题。</p>
+            <button onclick="location.reload()" style="
+                background: var(--accent-primary);
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+            ">刷新页面</button>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
 }
 
 // 多种初始化方式确保成功
