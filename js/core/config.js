@@ -18,13 +18,15 @@ export const APP_CONFIG = {
             hookType: '[data-field="hook-type"]',
             depth: '[data-field="depth"]',
             flexible: '[data-field="flexible"]',
-            testString: '[data-field="test-string"]'
+            testString: '[data-field="test-string"]',
+            fileInput: '[data-field="file-input"]'
         },
         
         // 操作按钮
         actions: {
             clear: '[data-action="clear"]',
             loadSample: '[data-action="load-sample"]',
+            uploadFile: '[data-action="upload-file"]',
             generate: '[data-action="generate"]',
             copyRegex: '[data-action="copy-regex"]',
             test: '[data-action="test"]',
@@ -190,12 +192,18 @@ export const ERROR_MESSAGES = {
     NO_REGEX: '没有可复制的正则表达式',
     NO_TEST_STRING: '请输入测试字符串',
     REGEX_ERROR: '正则表达式错误',
-    NO_AST: '请先解析JavaScript代码'
+    NO_AST: '请先解析JavaScript代码',
+    FILE_TOO_LARGE: '文件大小超过限制',
+    INVALID_FILE_TYPE: '不支持的文件类型',
+    FILE_READ_ERROR: '文件读取失败',
+    NO_FILE_SELECTED: '请选择要上传的文件'
 };
 
 // 成功信息
 export const SUCCESS_MESSAGES = {
     SYNTAX_VALID: '语法正确',
     HOOK_GENERATED: 'Hook正则生成完成',
-    REGEX_COPIED: '正则表达式已复制到剪贴板'
+    REGEX_COPIED: '正则表达式已复制到剪贴板',
+    FILE_UPLOADED: '文件上传成功',
+    SAMPLE_LOADED: '示例代码已加载'
 };

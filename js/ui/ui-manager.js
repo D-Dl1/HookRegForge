@@ -33,10 +33,12 @@ export class UIManager {
         this.elements.depth = getElement(APP_CONFIG.selectors.fields.depth);
         this.elements.flexible = getElement(APP_CONFIG.selectors.fields.flexible);
         this.elements.testString = getElement(APP_CONFIG.selectors.fields.testString);
+        this.elements.fileInput = getElement(APP_CONFIG.selectors.fields.fileInput);
 
         // 操作按钮
         this.elements.clearBtn = getElement(APP_CONFIG.selectors.actions.clear);
         this.elements.loadSampleBtn = getElement(APP_CONFIG.selectors.actions.loadSample);
+        this.elements.uploadFileBtn = getElement(APP_CONFIG.selectors.actions.uploadFile);
         this.elements.generateBtn = getElement(APP_CONFIG.selectors.actions.generate);
         this.elements.copyRegexBtn = getElement(APP_CONFIG.selectors.actions.copyRegex);
         this.elements.testBtn = getElement(APP_CONFIG.selectors.actions.test);
@@ -440,5 +442,49 @@ export class UIManager {
         if (field === 'targetFunction' && this.elements.targetFunction) {
             this.elements.targetFunction.value = value;
         }
+    }
+
+    /**
+     * 处理文件上传
+     * @param {File} file 上传的文件
+     * @returns {Promise<string>} 文件内容
+     */
+    async handleFileUpload(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new Error('没有选择文件'));
+                return;
+            }
+
+            // 检查文件大小 (最大10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                reject(new Error('文件大小超过限制 (最大10MB)'));
+                return;
+            }
+
+            // 检查文件类型
+            const validTypes = ['text/javascript', 'text/plain', 'application/json', ''];
+            const validExtensions = ['.js', '.txt', '.json'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                reject(new Error('不支持的文件类型。请上传 .js, .txt 或 .json 文件'));
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const content = e.target.result;
+                resolve(content);
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('文件读取失败'));
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        });
     }
 }

@@ -26,6 +26,11 @@ class HookRegForge {
      * 初始化应用
      */
     init() {
+        console.log(`开始初始化 ${APP_CONFIG.name} v${APP_CONFIG.version}`);
+        
+        // 检查UI元素是否正确初始化
+        this.debugElementsStatus();
+        
         this.bindEvents();
         this.loadSampleCode();
         
@@ -33,6 +38,53 @@ class HookRegForge {
         this.addAnimationStyles();
         
         console.log(`${APP_CONFIG.name} v${APP_CONFIG.version} 已初始化`);
+    }
+
+    /**
+     * 调试元素状态
+     */
+    debugElementsStatus() {
+        console.log('=== 调试UI元素状态 ===');
+        
+        // 检查按钮元素
+        const buttons = {
+            clearBtn: this.ui.elements.clearBtn,
+            loadSampleBtn: this.ui.elements.loadSampleBtn,
+            generateBtn: this.ui.elements.generateBtn,
+            copyRegexBtn: this.ui.elements.copyRegexBtn,
+            testBtn: this.ui.elements.testBtn,
+            expandAstBtn: this.ui.elements.expandAstBtn,
+            uploadFileBtn: this.ui.elements.uploadFileBtn
+        };
+        
+        Object.entries(buttons).forEach(([name, element]) => {
+            if (element) {
+                console.log(`✓ ${name}: 已找到`, element);
+            } else {
+                console.warn(`✗ ${name}: 未找到`);
+            }
+        });
+        
+        // 检查输入元素
+        const inputs = {
+            jsInput: this.ui.elements.jsInput,
+            targetFunction: this.ui.elements.targetFunction,
+            hookType: this.ui.elements.hookType,
+            depth: this.ui.elements.depth,
+            flexible: this.ui.elements.flexible,
+            testString: this.ui.elements.testString,
+            fileInput: this.ui.elements.fileInput
+        };
+        
+        Object.entries(inputs).forEach(([name, element]) => {
+            if (element) {
+                console.log(`✓ ${name}: 已找到`, element);
+            } else {
+                console.warn(`✗ ${name}: 未找到`);
+            }
+        });
+        
+        console.log('=== 调试结束 ===');
     }
 
     /**
@@ -54,45 +106,80 @@ class HookRegForge {
      */
     bindActionEvents() {
         // 清空按钮
-        if (this.ui.elements.clearBtn) {
-            this.ui.elements.clearBtn.addEventListener('click', () => {
+        const clearBtn = this.ui.elements.clearBtn;
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                console.log('清空按钮被点击');
                 this.clearInput();
             });
+        } else {
+            console.warn('清空按钮元素未找到');
         }
 
         // 加载示例按钮
-        if (this.ui.elements.loadSampleBtn) {
-            this.ui.elements.loadSampleBtn.addEventListener('click', () => {
+        const loadSampleBtn = this.ui.elements.loadSampleBtn;
+        if (loadSampleBtn) {
+            loadSampleBtn.addEventListener('click', () => {
+                console.log('加载示例按钮被点击');
                 this.loadSampleCode();
             });
+        } else {
+            console.warn('加载示例按钮元素未找到');
+        }
+
+        // 文件上传事件
+        const fileInput = this.ui.elements.fileInput;
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                console.log('文件选择事件触发');
+                this.handleFileUpload(e.target.files[0]);
+            });
+        } else {
+            console.warn('文件输入元素未找到');
         }
 
         // 生成按钮
-        if (this.ui.elements.generateBtn) {
-            this.ui.elements.generateBtn.addEventListener('click', () => {
+        const generateBtn = this.ui.elements.generateBtn;
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                console.log('生成按钮被点击');
                 this.generateHook();
             });
+        } else {
+            console.warn('生成按钮元素未找到');
         }
 
         // 复制正则按钮
-        if (this.ui.elements.copyRegexBtn) {
-            this.ui.elements.copyRegexBtn.addEventListener('click', () => {
+        const copyRegexBtn = this.ui.elements.copyRegexBtn;
+        if (copyRegexBtn) {
+            copyRegexBtn.addEventListener('click', () => {
+                console.log('复制正则按钮被点击');
                 this.copyRegex();
             });
+        } else {
+            console.warn('复制正则按钮元素未找到');
         }
 
         // 测试按钮
-        if (this.ui.elements.testBtn) {
-            this.ui.elements.testBtn.addEventListener('click', () => {
+        const testBtn = this.ui.elements.testBtn;
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
+                console.log('测试按钮被点击');
                 this.testRegex();
             });
+        } else {
+            console.warn('测试按钮元素未找到');
         }
 
         // 展开AST按钮
-        if (this.ui.elements.expandAstBtn) {
-            this.ui.elements.expandAstBtn.addEventListener('click', () => {
+        const expandAstBtn = this.ui.elements.expandAstBtn;
+        if (expandAstBtn) {
+            expandAstBtn.addEventListener('click', () => {
+                console.log('展开AST按钮被点击');
                 this.expandAST();
             });
+        } else {
+            console.warn('展开AST按钮元素未找到');
         }
     }
 
@@ -158,6 +245,33 @@ class HookRegForge {
         this.ui.setJavaScriptCode(APP_CONFIG.samples.default);
         this.ui.setConfigField('targetFunction', 'getName');
         this.updateConfig();
+        this.ui.showMessage(SUCCESS_MESSAGES.SAMPLE_LOADED, 'success');
+    }
+
+    /**
+     * 处理文件上传
+     * @param {File} file 上传的文件
+     */
+    async handleFileUpload(file) {
+        if (!file) return;
+
+        this.ui.showLoading(true);
+
+        try {
+            const content = await this.ui.handleFileUpload(file);
+            this.ui.setJavaScriptCode(content);
+            this.ui.showMessage(`文件 "${file.name}" 上传成功`, 'success');
+            
+            // 自动验证语法
+            setTimeout(() => {
+                this.validateSyntax();
+            }, 100);
+            
+        } catch (error) {
+            this.ui.showMessage(`文件上传失败: ${error.message}`, 'error');
+        } finally {
+            this.ui.showLoading(false);
+        }
     }
 
     /**
