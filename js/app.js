@@ -7,7 +7,7 @@ import { APP_CONFIG, DEFAULT_CONFIG, ERROR_MESSAGES, SUCCESS_MESSAGES } from './
 import { ASTParser } from './core/parser.js';
 import { RegexGenerator } from './core/regex-generator.js';
 import { UIManager } from './ui/ui-manager.js';
-import { LineNumbers } from './ui/line-numbers.js';
+import { SimpleLineNumbers } from './ui/simple-line-numbers.js';
 import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.js';
 
 class HookRegForge {
@@ -34,12 +34,19 @@ class HookRegForge {
         
         // 等待DOM完全加载后再绑定事件
         setTimeout(() => {
-            this.debugElementsStatus();
-            this.initLineNumbers();
-            this.bindEvents();
-            this.loadSampleCode();
-            this.addAnimationStyles();
-            console.log(`✅ ${APP_CONFIG.name} v${APP_CONFIG.version} 初始化完成`);
+            try {
+                this.debugElementsStatus();
+                this.bindEvents();
+                this.loadSampleCode();
+                this.addAnimationStyles();
+                
+                // 行号功能放在最后，即使失败也不影响其他功能
+                this.initLineNumbers();
+                
+                console.log(`✅ ${APP_CONFIG.name} v${APP_CONFIG.version} 初始化完成`);
+            } catch (error) {
+                console.error('❌ 应用初始化出错，但尝试继续运行:', error);
+            }
         }, 100);
     }
 
@@ -136,10 +143,43 @@ class HookRegForge {
      */
     initLineNumbers() {
         try {
-            this.lineNumbers = new LineNumbers('code-textarea', 'line-numbers');
-            console.log('✅ 行号功能初始化成功');
+            this.lineNumbers = new SimpleLineNumbers('code-textarea', 'line-numbers');
+            console.log('✅ 简单行号功能初始化成功');
+            this.useLineNumbers = true;
         } catch (error) {
-            console.error('❌ 行号功能初始化失败:', error);
+            console.error('❌ 行号功能初始化失败，切换到简单编辑器:', error);
+            this.switchToSimpleEditor();
+            this.lineNumbers = null;
+            this.useLineNumbers = false;
+        }
+    }
+
+    /**
+     * 切换到简单编辑器
+     */
+    switchToSimpleEditor() {
+        try {
+            const lineNumberEditor = document.getElementById('line-number-editor');
+            const simpleEditor = document.getElementById('simple-textarea');
+            const complexTextarea = document.getElementById('code-textarea');
+            
+            if (lineNumberEditor && simpleEditor && complexTextarea) {
+                // 复制内容
+                simpleEditor.value = complexTextarea.value;
+                
+                // 切换显示
+                lineNumberEditor.style.display = 'none';
+                simpleEditor.style.display = 'block';
+                
+                // 更新选择器
+                simpleEditor.setAttribute('data-field', 'js-input');
+                complexTextarea.removeAttribute('data-field');
+                
+                console.log('✅ 已切换到简单编辑器');
+                this.showMessage('已切换到简单编辑器模式', 'info');
+            }
+        } catch (error) {
+            console.error('切换编辑器失败:', error);
         }
     }
 
@@ -585,12 +625,18 @@ class HookRegForge {
             const lineNumber = this.extractLineNumber(error.message);
             let errorMessage = `代码解析失败: ${error.message}`;
             
-            if (lineNumber && this.lineNumbers) {
+            if (lineNumber) {
                 errorMessage += ` (行 ${lineNumber})`;
-                // 高亮错误行
-                setTimeout(() => {
-                    this.lineNumbers.highlightLine(lineNumber);
-                }, 100);
+                // 尝试高亮错误行
+                if (this.lineNumbers) {
+                    setTimeout(() => {
+                        try {
+                            this.lineNumbers.highlightLine(lineNumber);
+                        } catch (e) {
+                            console.warn('无法高亮错误行:', e);
+                        }
+                    }, 100);
+                }
             }
             
             this.showMessage(errorMessage, 'error');
@@ -900,29 +946,37 @@ class HookRegForge {
      * 显示跳转到行对话框
      */
     showGoToLineDialog() {
-        if (!this.lineNumbers) {
-            this.showMessage('行号功能未初始化', 'error');
-            return;
-        }
-
-        const totalLines = this.lineNumbers.getLineCount();
-        const currentLine = this.lineNumbers.getCurrentLineNumber();
-        
-        const lineNumber = prompt(
-            `跳转到行号 (1-${totalLines}):\n当前在第 ${currentLine} 行`,
-            currentLine.toString()
-        );
-        
-        if (lineNumber !== null) {
-            const targetLine = parseInt(lineNumber);
-            
-            if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
-                this.showMessage(`无效的行号。请输入 1 到 ${totalLines} 之间的数字`, 'error');
+        try {
+            if (!this.lineNumbers) {
+                this.showMessage('行号功能未启用', 'warning');
                 return;
             }
+
+            const totalLines = this.lineNumbers.getLineCount();
+            const currentLine = this.lineNumbers.getCurrentLineNumber();
             
-            this.lineNumbers.goToLine(targetLine);
-            this.showMessage(`已跳转到第 ${targetLine} 行`, 'success');
+            const lineNumber = prompt(
+                `跳转到行号 (1-${totalLines}):\n当前在第 ${currentLine} 行`,
+                currentLine.toString()
+            );
+            
+            if (lineNumber !== null) {
+                const targetLine = parseInt(lineNumber);
+                
+                if (isNaN(targetLine) || targetLine < 1 || targetLine > totalLines) {
+                    this.showMessage(`无效的行号。请输入 1 到 ${totalLines} 之间的数字`, 'error');
+                    return;
+                }
+                
+                if (this.lineNumbers.goToLine(targetLine)) {
+                    this.showMessage(`已跳转到第 ${targetLine} 行`, 'success');
+                } else {
+                    this.showMessage('跳转失败', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('跳转到行功能出错:', error);
+            this.showMessage('跳转功能暂时不可用', 'error');
         }
     }
 

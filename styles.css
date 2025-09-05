@@ -213,6 +213,31 @@ body {
     box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
 }
 
+/* 简单编辑器备用样式 */
+.simple-editor {
+    width: 100%;
+    min-height: 500px;
+    max-height: 80vh;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+    overflow-y: auto;
+    tab-size: 4;
+}
+
+.simple-editor:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
+}
+
 #jsInput::placeholder {
     color: var(--text-muted);
 }

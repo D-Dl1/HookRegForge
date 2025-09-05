@@ -3,10 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HookRegForge - JavaScript Hook路径正则生成器</title>
+    <title>HookRegForge - 应急修复版本</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 应急修复：简化编辑器样式 */
+        .editor-container {
+            position: relative;
+        }
+        
+        .simple-editor {
+            width: 100%;
+            min-height: 500px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        
+        .simple-editor:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -14,10 +41,9 @@
             <div class="header-content">
                 <h1 class="title">
                     <i class="fas fa-code-branch"></i>
-                    HookRegForge
+                    HookRegForge - 应急版本
                 </h1>
-                <p class="subtitle">面向混淆 JavaScript 的 Hook 路径正则生成器</p>
-                <p class="description">自动解析 AST，构造弹性正则，精准追踪函数链调用，助你攻坚逆向第一线</p>
+                <p class="subtitle">简化版本，确保核心功能正常</p>
             </div>
         </header>
 
@@ -37,19 +63,10 @@
                                 <i class="fas fa-upload"></i> 上传文件
                                 <input type="file" data-field="file-input" accept=".js,.txt,.json" style="display: none;">
                             </label>
-                            <button data-action="goto-line" class="btn btn-secondary">
-                                <i class="fas fa-crosshairs"></i> 跳转到行
-                            </button>
                         </div>
                     </div>
                     <div class="editor-container">
-                        <!-- 行号版本 -->
-                        <div class="code-editor" id="line-number-editor" style="display: flex;">
-                            <div class="line-numbers" id="line-numbers"></div>
-                            <textarea data-field="js-input" class="code-input" id="code-textarea"></textarea>
-                        </div>
-                        <!-- 简单版本备用 -->
-                        <textarea data-field="js-input-simple" class="simple-editor" id="simple-textarea" style="display: none;" placeholder="在此输入您的JavaScript代码..."></textarea>
+                        <textarea data-field="js-input" class="simple-editor" placeholder="在此输入您的JavaScript代码..."></textarea>
                     </div>
                 </section>
 
@@ -178,32 +195,6 @@
                 </div>
             </section>
         </main>
-
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>关于 HookRegForge</h4>
-                    <p>专为JavaScript逆向工程师设计的智能Hook路径生成工具</p>
-                </div>
-                <div class="footer-section">
-                    <h4>功能特性</h4>
-                    <ul>
-                        <li>智能AST解析</li>
-                        <li>弹性正则生成</li>
-                        <li>路径追踪优化</li>
-                        <li>混淆代码支持</li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>开源项目</h4>
-                    <p>
-                        <a href="https://github.com/D-Dl1/HookRegForge" target="_blank" rel="noopener noreferrer">
-                            <i class="fab fa-github"></i> GitHub
-                        </a>
-                    </p>
-                </div>
-            </div>
-        </footer>
     </div>
 
     <div data-overlay="loading" class="loading">
@@ -214,135 +205,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     
-    <!-- Esprima 多CDN加载策略 -->
+    <!-- 简化的Esprima加载 -->
     <script>
-        // CDN加载策略：尝试多个CDN源
-        // GitHub Pages优化的CDN列表 - 确保所有都是HTTPS
         const esprimaCDNs = [
             'https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js',
             'https://unpkg.com/esprima@4.0.1/dist/esprima.min.js',
-            'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js',
-            // 移除Skypack，因为它在GitHub Pages上可能有问题
-            'https://cdn.jsdelivr.net/npm/esprima@4.0.1/esprima.min.js'
+            'https://cdn.jsdelivr.net/npm/esprima@4.0.1/dist/esprima.min.js'
         ];
         
-        let esprimaLoaded = false;
-        let currentCDNIndex = 0;
-        
-        function loadEsprimaFromCDN(url, callback) {
+        function loadEsprima(index = 0) {
+            if (index >= esprimaCDNs.length) {
+                console.error('所有CDN都失败了');
+                return;
+            }
+            
             const script = document.createElement('script');
-            script.src = url;
-            script.onload = function() {
-                console.log('✅ Esprima loaded from:', url);
-                esprimaLoaded = true;
-                if (callback) callback(true);
-            };
-            script.onerror = function() {
-                console.warn('❌ Failed to load Esprima from:', url);
-                if (callback) callback(false);
-            };
+            script.onload = () => console.log('✅ Esprima加载成功');
+            script.onerror = () => loadEsprima(index + 1);
+            script.src = esprimaCDNs[index];
             document.head.appendChild(script);
         }
         
-        function tryNextCDN() {
-            if (currentCDNIndex < esprimaCDNs.length) {
-                const url = esprimaCDNs[currentCDNIndex];
-                console.log(`🔄 Trying CDN ${currentCDNIndex + 1}/${esprimaCDNs.length}:`, url);
-                
-                loadEsprimaFromCDN(url, function(success) {
-                    if (success) {
-                        esprimaLoaded = true;
-                    } else {
-                        currentCDNIndex++;
-                        if (currentCDNIndex < esprimaCDNs.length) {
-                            setTimeout(tryNextCDN, 1000); // 等待1秒后尝试下一个CDN
-                        } else {
-                            console.error('❌ All CDN sources failed, loading local fallback...');
-                            loadLocalEsprima();
-                        }
-                    }
-                });
-            }
-        }
-        
-        function loadLocalEsprima() {
-            // 尝试加载本地版本
-            loadEsprimaFromCDN('js/lib/esprima.min.js', function(success) {
-                if (!success) {
-                    console.error('❌ Local Esprima also failed to load');
-                    showEsprimaLoadError();
-                }
-            });
-        }
-        
-        function showEsprimaLoadError() {
-            const errorDiv = document.createElement('div');
-            errorDiv.innerHTML = `
-                <div style="
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: #1a1f25;
-                    color: #e6e6e6;
-                    padding: 2rem;
-                    border-radius: 12px;
-                    border: 1px solid #3c4043;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-                    z-index: 10000;
-                    text-align: center;
-                    max-width: 500px;
-                    font-family: 'Inter', sans-serif;
-                ">
-                    <div style="color: #e06c75; font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                    <h3 style="margin-bottom: 1rem; color: #e6e6e6;">依赖库加载失败</h3>
-                    <p style="margin-bottom: 1rem; line-height: 1.5;">
-                        Esprima库未能从任何CDN源加载成功。这可能是由于：<br>
-                        • 网络连接问题<br>
-                        • CDN服务暂时不可用<br>
-                        • 防火墙或代理阻止了请求
-                    </p>
-                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                        <button onclick="location.reload()" style="
-                            background: #61dafb;
-                            color: #0f1419;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-weight: 500;
-                        ">重新加载</button>
-                        <button onclick="window.open('cdn-status.html', '_blank')" style="
-                            background: #98c379;
-                            color: #0f1419;
-                            border: none;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-weight: 500;
-                        ">检查CDN状态</button>
-                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
-                            background: transparent;
-                            color: #abb2bf;
-                            border: 1px solid #3c4043;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 8px;
-                            cursor: pointer;
-                        ">关闭</button>
-                    </div>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; color: #6c7086;">
-                        建议：检查网络连接后重新加载页面
-                    </p>
-                </div>
-            `;
-            document.body.appendChild(errorDiv);
-        }
-        
-        // 开始加载Esprima
-        tryNextCDN();
+        loadEsprima();
     </script>
     
     <script src="js/fallback-events.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module">
+        // 应急版本：只加载核心功能，跳过行号
+        import('./js/app.js').catch(error => {
+            console.error('主应用加载失败，使用fallback:', error);
+        });
+    </script>
 </body>
 </html>
