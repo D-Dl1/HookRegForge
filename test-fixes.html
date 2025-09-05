@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HookRegForge 修复验证</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0f1419; color: #e6e6e6; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #3c4043; border-radius: 8px; }
+        .success { color: #98c379; }
+        .error { color: #e06c75; }
+        .warning { color: #e5c07b; }
+    </style>
+</head>
+<body>
+    <h1>HookRegForge 修复验证测试</h1>
+    
+    <div class="test-section">
+        <h2>修复内容总结</h2>
+        <ul>
+            <li class="success">✅ 代码显示区域太小的问题 - 已修复（增加高度到500px，添加最大高度80vh）</li>
+            <li class="success">✅ 上传JS后再加载示例再上传JS不显示的问题 - 已修复（重置文件输入值）</li>
+            <li class="success">✅ Esprima库未加载的错误 - 已修复（增加重试机制和错误提示）</li>
+            <li class="success">✅ AST结构、函数路径、正则表达式、测试验证功能 - 已修复（增强显示和语法高亮）</li>
+            <li class="success">✅ 无法切换到其他标签页的问题 - 已修复（添加标签页事件绑定）</li>
+            <li class="success">✅ 展开所有按钮无效的问题 - 已修复（实现完整AST展开功能）</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>主要修复说明</h2>
+        <h3>1. 代码输入区域优化</h3>
+        <p>- 增加了min-height: 500px和max-height: 80vh</p>
+        <p>- 添加了overflow-y: auto以支持滚动</p>
+        
+        <h3>2. 文件上传状态管理</h3>
+        <p>- 在文件上传成功后重置文件输入的value为空字符串</p>
+        <p>- 这样可以重复上传同一个文件</p>
+        
+        <h3>3. Esprima加载检测改进</h3>
+        <p>- 实现了重试机制，最多尝试10次，每次间隔500ms</p>
+        <p>- 添加了用户友好的错误提示界面</p>
+        
+        <h3>4. 标签页功能修复</h3>
+        <p>- 在主应用中添加了bindTabEvents方法</p>
+        <p>- 实现了switchTab方法来正确切换标签页</p>
+        
+        <h3>5. AST展开功能增强</h3>
+        <p>- 实现了displayExpandedAST方法显示完整AST</p>
+        <p>- 添加了simplifyAST方法用于初始显示</p>
+        <p>- 增加了语法高亮支持</p>
+        
+        <h3>6. 界面显示改进</h3>
+        <p>- 增强了路径显示，添加了类型标签</p>
+        <p>- 改进了正则表达式显示和语法高亮</p>
+        <p>- 添加了更好的错误处理</p>
+    </div>
+
+    <div class="test-section">
+        <h2>使用建议</h2>
+        <p class="warning">⚠️ 由于你是在GitHub Pages上测试，请确保：</p>
+        <ul>
+            <li>网络连接稳定，以便CDN资源正常加载</li>
+            <li>如果Esprima库加载失败，请刷新页面重试</li>
+            <li>如果遇到问题，请检查浏览器控制台的错误信息</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>测试步骤</h2>
+        <ol>
+            <li>打开主页面 index.html</li>
+            <li>检查代码输入区域是否足够大（应该是500px高度）</li>
+            <li>尝试上传一个JS文件</li>
+            <li>点击"加载示例"按钮</li>
+            <li>再次上传同一个JS文件，检查是否正常显示</li>
+            <li>点击"生成Hook正则"按钮</li>
+            <li>检查是否能正常切换到不同的标签页（AST结构、函数路径、正则表达式、测试验证）</li>
+            <li>在AST结构标签页点击"展开所有"按钮</li>
+            <li>在测试验证标签页输入测试字符串并运行测试</li>
+        </ol>
+    </div>
+</body>
+</html>

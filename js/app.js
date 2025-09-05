@@ -143,6 +143,9 @@ class HookRegForge {
         // 语法验证事件
         this.bindValidationEvents();
         
+        // 标签页切换事件
+        this.bindTabEvents();
+        
         console.log('✅ 事件绑定完成');
     }
 
@@ -261,6 +264,63 @@ class HookRegForge {
                 console.log(`✅ 配置字段事件绑定成功: ${selector}`);
             } else {
                 console.warn(`⚠️ 配置字段未找到: ${selector}`);
+            }
+        });
+    }
+
+    /**
+     * 绑定标签页事件
+     */
+    bindTabEvents() {
+        console.log('🔗 绑定标签页事件...');
+        
+        // 查找所有标签页按钮
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        const tabPanels = document.querySelectorAll('[data-tab-panel]');
+        
+        console.log(`找到 ${tabButtons.length} 个标签页按钮，${tabPanels.length} 个标签页面板`);
+        
+        tabButtons.forEach((button, index) => {
+            const tabName = button.dataset.tab;
+            console.log(`绑定标签页: ${tabName}`);
+            
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log(`🎯 标签页 "${tabName}" 被点击`);
+                this.switchTab(tabName);
+            });
+        });
+        
+        // 默认激活第一个标签页
+        if (tabButtons.length > 0) {
+            this.switchTab('ast');
+        }
+    }
+
+    /**
+     * 切换标签页
+     * @param {string} tabName 标签页名称
+     */
+    switchTab(tabName) {
+        console.log(`🔄 切换到标签页: ${tabName}`);
+        
+        // 更新按钮状态
+        const tabButtons = document.querySelectorAll('[data-tab]');
+        tabButtons.forEach(button => {
+            button.classList.remove('active');
+            button.setAttribute('aria-selected', 'false');
+            if (button.dataset.tab === tabName) {
+                button.classList.add('active');
+                button.setAttribute('aria-selected', 'true');
+            }
+        });
+
+        // 更新面板显示
+        const tabPanels = document.querySelectorAll('[data-tab-panel]');
+        tabPanels.forEach(panel => {
+            panel.classList.remove('active');
+            if (panel.dataset.tabPanel === tabName) {
+                panel.classList.add('active');
             }
         });
     }
@@ -394,6 +454,12 @@ class HookRegForge {
                 jsInput.value = content;
                 this.showMessage(`文件 "${file.name}" 上传成功`, 'success');
                 
+                // 重置文件输入以允许重复上传同一文件
+                const fileInput = document.querySelector('[data-field="file-input"]');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                
                 // 自动验证语法
                 setTimeout(() => {
                     this.validateSyntax();
@@ -502,10 +568,49 @@ class HookRegForge {
      */
     displayAST(ast) {
         const astOutput = document.querySelector('[data-output="ast"]');
-        if (astOutput) {
-            const formattedAst = JSON.stringify(ast, null, 2);
+        if (!astOutput) return;
+
+        try {
+            // 生成简化的AST用于初始显示
+            const simplifiedAst = this.simplifyAST(ast, 3); // 限制深度为3
+            const formattedAst = JSON.stringify(simplifiedAst, null, 2);
             astOutput.innerHTML = `<code class="language-json">${this.escapeHtml(formattedAst)}</code>`;
+            
+            // 应用语法高亮
+            if (window.Prism) {
+                Prism.highlightElement(astOutput.querySelector('code'));
+            }
+        } catch (error) {
+            console.error('显示AST时出错:', error);
+            astOutput.innerHTML = `<code>显示AST时出错: ${this.escapeHtml(error.message)}</code>`;
         }
+    }
+
+    /**
+     * 简化AST用于显示
+     */
+    simplifyAST(obj, maxDepth, currentDepth = 0) {
+        if (currentDepth >= maxDepth) {
+            return typeof obj === 'object' && obj !== null ? '[...]' : obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.simplifyAST(item, maxDepth, currentDepth + 1));
+        }
+
+        if (typeof obj === 'object' && obj !== null) {
+            const simplified = {};
+            for (const [key, value] of Object.entries(obj)) {
+                // 跳过一些冗余属性
+                if (key === 'parent' || key === '_parent' || key === 'range' || key === 'loc') {
+                    continue;
+                }
+                simplified[key] = this.simplifyAST(value, maxDepth, currentDepth + 1);
+            }
+            return simplified;
+        }
+
+        return obj;
     }
 
     /**
@@ -525,18 +630,35 @@ class HookRegForge {
                 return;
             }
 
-            const pathsHtml = paths.map(path => `
+            const pathsHtml = paths.map((path, index) => `
                 <div class="path-item">
-                    <div class="path-name">${this.escapeHtml(path.path)}</div>
+                    <div class="path-header">
+                        <div class="path-name">${this.escapeHtml(path.path)}</div>
+                        <div class="path-badge path-type-${path.type}">${this.getTypeDisplayName(path.type)}</div>
+                    </div>
                     <div class="path-details">
-                        <span class="path-type">${path.type}</span>
-                        ${path.context ? ` • <span class="path-context">上下文: ${path.context}</span>` : ''}
+                        ${path.context ? `<span class="path-context">上下文: ${path.context}</span>` : ''}
+                        ${path.parameters !== undefined ? ` • <span class="path-params">参数: ${path.parameters}</span>` : ''}
+                        ${path.arguments !== undefined ? ` • <span class="path-args">实参: ${path.arguments}</span>` : ''}
+                        ${path.computed ? ' • <span class="path-computed">计算属性</span>' : ''}
                     </div>
                 </div>
             `).join('');
 
             pathsList.innerHTML = pathsHtml;
         }
+    }
+
+    /**
+     * 获取类型显示名称
+     */
+    getTypeDisplayName(type) {
+        const typeNames = {
+            function: '函数',
+            method: '方法',
+            property: '属性'
+        };
+        return typeNames[type] || type;
     }
 
     /**
@@ -547,10 +669,24 @@ class HookRegForge {
         const regexExplanation = document.querySelector('[data-output="regex-explanation"]');
         
         if (regexOutput) {
-            regexOutput.innerHTML = `<code class="language-regex">${this.escapeHtml(regex)}</code>`;
+            if (regex) {
+                regexOutput.innerHTML = `<code class="language-regex">${this.escapeHtml(regex)}</code>`;
+                
+                // 应用语法高亮
+                if (window.Prism) {
+                    Prism.highlightElement(regexOutput.querySelector('code'));
+                }
+            } else {
+                regexOutput.innerHTML = '<code>生成的正则表达式将在这里显示...</code>';
+            }
         }
+        
         if (regexExplanation) {
-            regexExplanation.innerHTML = explanation;
+            if (explanation) {
+                regexExplanation.innerHTML = explanation;
+            } else {
+                regexExplanation.innerHTML = '<p>正则表达式的详细解释将在这里显示...</p>';
+            }
         }
     }
 
@@ -633,8 +769,37 @@ class HookRegForge {
             return;
         }
 
-        this.displayAST(ast);
-        this.showMessage('AST已展开显示', 'success');
+        // 展开显示完整的AST
+        this.displayExpandedAST(ast);
+        this.switchTab('ast'); // 切换到AST标签页
+        this.showMessage('AST已完全展开显示', 'success');
+    }
+
+    /**
+     * 显示完全展开的AST
+     */
+    displayExpandedAST(ast) {
+        const astOutput = document.querySelector('[data-output="ast"]');
+        if (!astOutput) return;
+
+        try {
+            // 生成完整的JSON字符串，不限制深度
+            const fullAstJson = JSON.stringify(ast, (key, value) => {
+                // 过滤掉循环引用和一些冗余属性
+                if (key === 'parent' || key === '_parent') return undefined;
+                return value;
+            }, 2);
+
+            astOutput.innerHTML = `<code class="language-json">${this.escapeHtml(fullAstJson)}</code>`;
+            
+            // 应用语法高亮
+            if (window.Prism) {
+                Prism.highlightElement(astOutput.querySelector('code'));
+            }
+        } catch (error) {
+            console.error('展开AST时出错:', error);
+            astOutput.innerHTML = `<code>展开AST时出错: ${this.escapeHtml(error.message)}</code>`;
+        }
     }
 
     /**
@@ -689,18 +854,69 @@ class HookRegForge {
 function initializeApp() {
     console.log('🚀 准备初始化 HookRegForge...');
     
-    // 检查依赖
-    if (typeof esprima === 'undefined') {
-        console.error('❌ Esprima 库未加载，请检查依赖');
-        return;
-    }
+    // 检查依赖 - 等待一段时间让脚本加载
+    const checkEsprima = () => {
+        if (typeof esprima === 'undefined') {
+            console.warn('⏳ Esprima 库尚未加载，等待中...');
+            return false;
+        }
+        return true;
+    };
 
-    try {
-        window.hookRegForge = new HookRegForge();
-        console.log('✅ HookRegForge 初始化成功');
-    } catch (error) {
-        console.error('❌ 初始化 HookRegForge 失败:', error);
-    }
+    const attemptInit = (attempt = 1) => {
+        if (checkEsprima()) {
+            try {
+                window.hookRegForge = new HookRegForge();
+                console.log('✅ HookRegForge 初始化成功');
+            } catch (error) {
+                console.error('❌ 初始化 HookRegForge 失败:', error);
+            }
+        } else if (attempt < 10) {
+            // 最多尝试10次，每次间隔500ms
+            setTimeout(() => attemptInit(attempt + 1), 500);
+        } else {
+            console.error('❌ Esprima 库加载超时，请刷新页面重试');
+            // 显示错误消息给用户
+            showEsprimaError();
+        }
+    };
+
+    attemptInit();
+}
+
+// 显示Esprima加载错误
+function showEsprimaError() {
+    const errorDiv = document.createElement('div');
+    errorDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 2rem;
+            border-radius: var(--border-radius-large);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-large);
+            z-index: 10000;
+            text-align: center;
+            max-width: 400px;
+        ">
+            <i class="fas fa-exclamation-triangle" style="color: var(--accent-error); font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3 style="margin-bottom: 1rem;">依赖库加载失败</h3>
+            <p style="margin-bottom: 1rem;">Esprima库未能正确加载，这可能是网络问题或CDN问题。</p>
+            <button onclick="location.reload()" style="
+                background: var(--accent-primary);
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+            ">刷新页面</button>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
 }
 
 // 多种初始化方式确保成功

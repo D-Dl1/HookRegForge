@@ -166,9 +166,10 @@ body {
     position: relative;
 }
 
-#jsInput {
+#jsInput, .code-input {
     width: 100%;
-    min-height: 400px;
+    min-height: 500px;
+    max-height: 80vh;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -179,6 +180,7 @@ body {
     line-height: 1.5;
     resize: vertical;
     transition: border-color 0.3s ease;
+    overflow-y: auto;
 }
 
 #jsInput:focus {
@@ -421,11 +423,39 @@ body {
     transform: translateX(4px);
 }
 
+.path-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
 .path-name {
     font-family: var(--font-mono);
     color: var(--accent-primary);
     font-weight: 600;
-    margin-bottom: 0.5rem;
+}
+
+.path-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.path-type-function {
+    background: rgba(97, 218, 251, 0.2);
+    color: var(--accent-primary);
+}
+
+.path-type-method {
+    background: rgba(152, 195, 121, 0.2);
+    color: var(--accent-secondary);
+}
+
+.path-type-property {
+    background: rgba(229, 192, 123, 0.2);
+    color: var(--accent-warning);
 }
 
 .path-details {
