@@ -17,47 +17,81 @@ export class UIManager {
      * 初始化UI管理器
      */
     init() {
-        this.cacheElements();
-        this.bindEvents();
-        this.setupTabs();
+        // 延迟初始化以确保DOM完全加载
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.delayedInit();
+            });
+        } else {
+            this.delayedInit();
+        }
+    }
+
+    /**
+     * 延迟初始化
+     */
+    delayedInit() {
+        setTimeout(() => {
+            this.cacheElements();
+            this.bindEvents();
+            this.setupTabs();
+            console.log('UI管理器初始化完成');
+        }, 100);
     }
 
     /**
      * 缓存DOM元素
      */
     cacheElements() {
+        console.log('🔍 开始缓存DOM元素...');
+        
         // 输入字段
-        this.elements.jsInput = getElement(APP_CONFIG.selectors.fields.jsInput);
-        this.elements.targetFunction = getElement(APP_CONFIG.selectors.fields.targetFunction);
-        this.elements.hookType = getElement(APP_CONFIG.selectors.fields.hookType);
-        this.elements.depth = getElement(APP_CONFIG.selectors.fields.depth);
-        this.elements.flexible = getElement(APP_CONFIG.selectors.fields.flexible);
-        this.elements.testString = getElement(APP_CONFIG.selectors.fields.testString);
-        this.elements.fileInput = getElement(APP_CONFIG.selectors.fields.fileInput);
+        this.elements.jsInput = this.cacheElement('jsInput', APP_CONFIG.selectors.fields.jsInput);
+        this.elements.targetFunction = this.cacheElement('targetFunction', APP_CONFIG.selectors.fields.targetFunction);
+        this.elements.hookType = this.cacheElement('hookType', APP_CONFIG.selectors.fields.hookType);
+        this.elements.depth = this.cacheElement('depth', APP_CONFIG.selectors.fields.depth);
+        this.elements.flexible = this.cacheElement('flexible', APP_CONFIG.selectors.fields.flexible);
+        this.elements.testString = this.cacheElement('testString', APP_CONFIG.selectors.fields.testString);
+        this.elements.fileInput = this.cacheElement('fileInput', APP_CONFIG.selectors.fields.fileInput);
 
         // 操作按钮
-        this.elements.clearBtn = getElement(APP_CONFIG.selectors.actions.clear);
-        this.elements.loadSampleBtn = getElement(APP_CONFIG.selectors.actions.loadSample);
-        this.elements.uploadFileBtn = getElement(APP_CONFIG.selectors.actions.uploadFile);
-        this.elements.generateBtn = getElement(APP_CONFIG.selectors.actions.generate);
-        this.elements.copyRegexBtn = getElement(APP_CONFIG.selectors.actions.copyRegex);
-        this.elements.testBtn = getElement(APP_CONFIG.selectors.actions.test);
-        this.elements.expandAstBtn = getElement(APP_CONFIG.selectors.actions.expandAst);
+        this.elements.clearBtn = this.cacheElement('clearBtn', APP_CONFIG.selectors.actions.clear);
+        this.elements.loadSampleBtn = this.cacheElement('loadSampleBtn', APP_CONFIG.selectors.actions.loadSample);
+        this.elements.uploadFileBtn = this.cacheElement('uploadFileBtn', APP_CONFIG.selectors.actions.uploadFile);
+        this.elements.generateBtn = this.cacheElement('generateBtn', APP_CONFIG.selectors.actions.generate);
+        this.elements.copyRegexBtn = this.cacheElement('copyRegexBtn', APP_CONFIG.selectors.actions.copyRegex);
+        this.elements.testBtn = this.cacheElement('testBtn', APP_CONFIG.selectors.actions.test);
+        this.elements.expandAstBtn = this.cacheElement('expandAstBtn', APP_CONFIG.selectors.actions.expandAst);
 
         // 输出区域
-        this.elements.astOutput = getElement(APP_CONFIG.selectors.outputs.ast);
-        this.elements.regexOutput = getElement(APP_CONFIG.selectors.outputs.regex);
-        this.elements.regexExplanation = getElement(APP_CONFIG.selectors.outputs.regexExplanation);
-        this.elements.testOutput = getElement(APP_CONFIG.selectors.outputs.test);
+        this.elements.astOutput = this.cacheElement('astOutput', APP_CONFIG.selectors.outputs.ast);
+        this.elements.regexOutput = this.cacheElement('regexOutput', APP_CONFIG.selectors.outputs.regex);
+        this.elements.regexExplanation = this.cacheElement('regexExplanation', APP_CONFIG.selectors.outputs.regexExplanation);
+        this.elements.testOutput = this.cacheElement('testOutput', APP_CONFIG.selectors.outputs.test);
 
         // 列表和计数器
-        this.elements.pathsList = getElement(APP_CONFIG.selectors.lists.paths);
-        this.elements.pathsCounter = getElement(APP_CONFIG.selectors.counters.paths);
+        this.elements.pathsList = this.cacheElement('pathsList', APP_CONFIG.selectors.lists.paths);
+        this.elements.pathsCounter = this.cacheElement('pathsCounter', APP_CONFIG.selectors.counters.paths);
 
         // UI组件
         this.elements.tabs = getElements(APP_CONFIG.selectors.ui.tabs);
         this.elements.tabPanels = getElements(APP_CONFIG.selectors.ui.tabPanels);
-        this.elements.loadingOverlay = getElement(APP_CONFIG.selectors.ui.loadingOverlay);
+        this.elements.loadingOverlay = this.cacheElement('loadingOverlay', APP_CONFIG.selectors.ui.loadingOverlay);
+        
+        console.log('✅ DOM元素缓存完成');
+    }
+
+    /**
+     * 缓存单个元素并记录日志
+     */
+    cacheElement(name, selector) {
+        const element = getElement(selector);
+        if (element) {
+            console.log(`✅ ${name}: 已找到 (${selector})`);
+        } else {
+            console.warn(`❌ ${name}: 未找到 (${selector})`);
+        }
+        return element;
     }
 
     /**

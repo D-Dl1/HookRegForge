@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>独立测试 - HookRegForge</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #444; 
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .btn { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:active { 
+            background: #1d4ed8; 
+            transform: translateY(1px);
+        }
+        .file-upload-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .file-upload-btn input[type="file"] {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+        textarea, input, select {
+            width: calc(100% - 20px);
+            background: #1a1a1a;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .output {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 100px;
+            border: 1px solid #555;
+        }
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 14px;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        }
+        .message.success { background: #10b981; color: white; }
+        .message.error { background: #ef4444; color: white; }
+        .message.info { background: #3b82f6; color: white; }
+        .message.warning { background: #f59e0b; color: white; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .path-item {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #3b82f6;
+            border-radius: 4px;
+        }
+        
+        .path-name {
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        
+        .path-details {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 HookRegForge 独立功能测试</h1>
+    
+    <div class="section">
+        <h2>🎮 操作按钮</h2>
+        <button data-action="clear" class="btn">清空</button>
+        <button data-action="load-sample" class="btn">加载示例</button>
+        <button data-action="generate" class="btn">生成Hook正则</button>
+        <button data-action="copy-regex" class="btn">复制正则</button>
+        <button data-action="test" class="btn">测试正则</button>
+        <label data-action="upload-file" class="btn file-upload-btn">
+            上传文件
+            <input type="file" data-field="file-input" accept=".js,.txt,.json">
+        </label>
+    </div>
+    
+    <div class="section">
+        <h2>📝 输入配置</h2>
+        <textarea data-field="js-input" rows="12" placeholder="在此输入JavaScript代码..."></textarea>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <input data-field="target-function" placeholder="目标函数名 (可选)">
+            <select data-field="hook-type">
+                <option value="function">函数调用</option>
+                <option value="property">属性访问</option>
+                <option value="method">方法调用</option>
+                <option value="all">全部路径</option>
+            </select>
+            <input data-field="depth" type="number" min="1" max="10" value="3" placeholder="搜索深度">
+        </div>
+        
+        <label style="display: block; margin: 10px 0;">
+            <input data-field="flexible" type="checkbox"> 弹性匹配模式
+        </label>
+    </div>
+    
+    <div class="section">
+        <h2>📊 分析结果</h2>
+        
+        <h3>AST 结构</h3>
+        <div data-output="ast" class="output">解析的AST结构将在这里显示...</div>
+        
+        <h3>函数路径 (<span data-counter="paths">0 个路径</span>)</h3>
+        <div data-list="paths" class="output">输入代码并点击"生成Hook正则"来发现函数路径</div>
+        
+        <h3>正则表达式</h3>
+        <div data-output="regex" class="output">生成的正则表达式将在这里显示...</div>
+        <div data-output="regex-explanation" class="output">正则表达式的详细解释将在这里显示...</div>
+    </div>
+    
+    <div class="section">
+        <h2>🧪 测试验证</h2>
+        <textarea data-field="test-string" rows="3" placeholder="输入测试字符串..."></textarea>
+        <div data-output="test" class="output">测试结果将在这里显示...</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/esprima/4.0.1/esprima.min.js"></script>
+    <script>
+        // 应用状态
+        const appState = {
+            ast: null,
+            paths: [],
+            regex: '',
+            config: {
+                targetFunction: '',
+                hookType: 'function',
+                depth: 3,
+                flexible: false
+            }
+        };
+        
+        // 示例代码
+        const sampleCode = `// 复杂的JavaScript对象结构
+var MyApp = {
+    user: {
+        profile: {
+            getName: function() {
+                return this.name;
+            },
+            setName: function(name) {
+                this.name = name;
+            }
+        }
+    },
+    utils: {
+        crypto: {
+            encrypt: function(data) {
+                return btoa(JSON.stringify(data));
+            }
+        }
+    }
+};
+
+// 函数调用示例
+function processUserData(userData) {
+    const name = MyApp.user.profile.getName();
+    const encrypted = MyApp.utils.crypto.encrypt(userData);
+    return { name, data: encrypted };
+}
+
+// 动态属性访问
+window['MyApp']['user']['profile']['getName']();`;
+
+        // 显示消息
+        function showMessage(text, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${text}`);
+            
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.parentNode.removeChild(message);
+                }
+            }, 3000);
+        }
+        
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 获取配置
+        function getConfig() {
+            return {
+                targetFunction: document.querySelector('[data-field="target-function"]').value || '',
+                hookType: document.querySelector('[data-field="hook-type"]').value || 'function',
+                depth: parseInt(document.querySelector('[data-field="depth"]').value || '3'),
+                flexible: document.querySelector('[data-field="flexible"]').checked || false
+            };
+        }
+        
+        // 简化的AST路径提取
+        function extractPaths(ast, config) {
+            const paths = [];
+            
+            function traverse(node, currentPath = []) {
+                if (!node || typeof node !== 'object') return;
+                
+                // 提取成员表达式 (obj.prop, obj['prop'])
+                if (node.type === 'MemberExpression') {
+                    const path = buildPath(node);
+                    if (path) {
+                        paths.push({
+                            path: path,
+                            type: 'property',
+                            context: 'member_access',
+                            computed: node.computed
+                        });
+                    }
+                }
+                
+                // 提取函数调用 (func(), obj.method())
+                if (node.type === 'CallExpression') {
+                    if (node.callee.type === 'MemberExpression') {
+                        const path = buildPath(node.callee);
+                        if (path) {
+                            paths.push({
+                                path: path,
+                                type: 'method',
+                                context: 'function_call',
+                                arguments: node.arguments.length
+                            });
+                        }
+                    } else if (node.callee.type === 'Identifier') {
+                        paths.push({
+                            path: node.callee.name,
+                            type: 'function',
+                            context: 'function_call',
+                            arguments: node.arguments.length
+                        });
+                    }
+                }
+                
+                // 递归遍历
+                for (const key in node) {
+                    if (key !== 'parent' && key !== 'range' && key !== 'loc') {
+                        const child = node[key];
+                        if (Array.isArray(child)) {
+                            child.forEach(item => traverse(item, currentPath));
+                        } else if (child && typeof child === 'object') {
+                            traverse(child, currentPath);
+                        }
+                    }
+                }
+            }
+            
+            function buildPath(memberExpr) {
+                const parts = [];
+                let current = memberExpr;
+                
+                while (current) {
+                    if (current.type === 'MemberExpression') {
+                        if (current.property) {
+                            if (current.computed) {
+                                if (current.property.type === 'Literal') {
+                                    parts.unshift(`["${current.property.value}"]`);
+                                } else {
+                                    parts.unshift(`[${current.property.name || 'unknown'}]`);
+                                }
+                            } else {
+                                parts.unshift(`.${current.property.name}`);
+                            }
+                        }
+                        current = current.object;
+                    } else if (current.type === 'Identifier') {
+                        parts.unshift(current.name);
+                        break;
+                    } else {
+                        parts.unshift('unknown');
+                        break;
+                    }
+                }
+                
+                return parts.join('').replace(/^\./, '');
+            }
+            
+            traverse(ast);
+            
+            // 过滤路径
+            let filteredPaths = paths;
+            
+            if (config.targetFunction) {
+                filteredPaths = paths.filter(path => 
+                    path.path.includes(config.targetFunction)
+                );
+            }
+            
+            if (config.hookType !== 'all') {
+                filteredPaths = filteredPaths.filter(path => 
+                    path.type === config.hookType
+                );
+            }
+            
+            return filteredPaths;
+        }
+        
+        // 生成正则表达式
+        function generateRegex(paths, config) {
+            if (paths.length === 0) {
+                return {
+                    regex: '',
+                    explanation: '没有找到可生成正则的路径'
+                };
+            }
+            
+            const patterns = paths.map(path => {
+                let pattern = path.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                
+                if (config.flexible) {
+                    // 弹性匹配：支持不同的访问方式
+                    pattern = pattern
+                        .replace(/\\\./g, '(?:\\.|\\[\\s*["\']?)') // . 或 ["
+                        .replace(/\\\[/g, '(?:\\[\\s*["\']?)') // [
+                        .replace(/\\\]/g, '(?:["\']?\\s*\\])'); // ]
+                }
+                
+                return pattern;
+            });
+            
+            const uniquePatterns = [...new Set(patterns)];
+            const combinedPattern = uniquePatterns.length === 1 ? 
+                uniquePatterns[0] : 
+                `(${uniquePatterns.join('|')})`;
+            
+            return {
+                regex: combinedPattern,
+                explanation: `生成了 ${uniquePatterns.length} 个模式，匹配 ${paths.length} 个路径`
+            };
+        }
+        
+        // 测试正则表达式
+        function testRegex(regex, testString) {
+            try {
+                const regexObj = new RegExp(regex, 'g');
+                const matches = [];
+                let match;
+                
+                while ((match = regexObj.exec(testString)) !== null) {
+                    matches.push({
+                        text: match[0],
+                        position: match.index,
+                        length: match[0].length
+                    });
+                    
+                    if (!regexObj.global) break;
+                }
+                
+                return {
+                    success: true,
+                    matches: matches
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        // 事件处理函数
+        const handlers = {
+            clear: function() {
+                console.log('🎯 清空按钮被点击');
+                document.querySelector('[data-field="js-input"]').value = '';
+                document.querySelector('[data-output="ast"]').innerHTML = '解析的AST结构将在这里显示...';
+                document.querySelector('[data-list="paths"]').innerHTML = '输入代码并点击"生成Hook正则"来发现函数路径';
+                document.querySelector('[data-output="regex"]').innerHTML = '生成的正则表达式将在这里显示...';
+                document.querySelector('[data-counter="paths"]').textContent = '0 个路径';
+                appState.ast = null;
+                appState.paths = [];
+                appState.regex = '';
+                showMessage('输入已清空', 'success');
+            },
+            
+            'load-sample': function() {
+                console.log('🎯 加载示例按钮被点击');
+                document.querySelector('[data-field="js-input"]').value = sampleCode;
+                document.querySelector('[data-field="target-function"]').value = 'getName';
+                showMessage('示例代码已加载', 'success');
+            },
+            
+            generate: function() {
+                console.log('🎯 生成按钮被点击');
+                const code = document.querySelector('[data-field="js-input"]').value.trim();
+                
+                if (!code) {
+                    showMessage('请输入JavaScript代码', 'error');
+                    return;
+                }
+                
+                showMessage('正在生成Hook正则...', 'info');
+                
+                try {
+                    // 解析AST
+                    appState.ast = esprima.parseScript(code);
+                    document.querySelector('[data-output="ast"]').innerHTML = 
+                        `<pre>${escapeHtml(JSON.stringify(appState.ast, null, 2).substring(0, 2000))}...</pre>`;
+                    
+                    // 提取路径
+                    appState.config = getConfig();
+                    appState.paths = extractPaths(appState.ast, appState.config);
+                    
+                    // 显示路径
+                    document.querySelector('[data-counter="paths"]').textContent = `${appState.paths.length} 个路径`;
+                    
+                    if (appState.paths.length === 0) {
+                        document.querySelector('[data-list="paths"]').innerHTML = '未找到匹配的函数路径';
+                    } else {
+                        const pathsHtml = appState.paths.map(path => `
+                            <div class="path-item">
+                                <div class="path-name">${escapeHtml(path.path)}</div>
+                                <div class="path-details">
+                                    类型: ${path.type} • 上下文: ${path.context}
+                                    ${path.arguments !== undefined ? ` • 参数: ${path.arguments}` : ''}
+                                    ${path.computed ? ' • 计算属性' : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                        document.querySelector('[data-list="paths"]').innerHTML = pathsHtml;
+                    }
+                    
+                    // 生成正则
+                    const regexResult = generateRegex(appState.paths, appState.config);
+                    appState.regex = regexResult.regex;
+                    
+                    document.querySelector('[data-output="regex"]').innerHTML = 
+                        `<code>${escapeHtml(regexResult.regex)}</code>`;
+                    document.querySelector('[data-output="regex-explanation"]').innerHTML = 
+                        regexResult.explanation;
+                    
+                    showMessage('Hook正则生成完成', 'success');
+                    
+                } catch (error) {
+                    console.error('生成失败:', error);
+                    showMessage(`代码解析失败: ${error.message}`, 'error');
+                }
+            },
+            
+            'copy-regex': function() {
+                console.log('🎯 复制正则按钮被点击');
+                if (!appState.regex) {
+                    showMessage('没有可复制的正则表达式', 'error');
+                    return;
+                }
+                
+                navigator.clipboard.writeText(appState.regex).then(() => {
+                    showMessage('正则表达式已复制到剪贴板', 'success');
+                }).catch(() => {
+                    showMessage('复制失败，请手动复制', 'error');
+                });
+            },
+            
+            test: function() {
+                console.log('🎯 测试按钮被点击');
+                if (!appState.regex) {
+                    showMessage('没有可测试的正则表达式', 'error');
+                    return;
+                }
+                
+                const testString = document.querySelector('[data-field="test-string"]').value.trim();
+                if (!testString) {
+                    showMessage('请输入测试字符串', 'error');
+                    return;
+                }
+                
+                const result = testRegex(appState.regex, testString);
+                
+                if (!result.success) {
+                    document.querySelector('[data-output="test"]').innerHTML = 
+                        `<div style="color: #f87171;">错误: ${escapeHtml(result.error)}</div>`;
+                    showMessage('正则表达式测试失败', 'error');
+                    return;
+                }
+                
+                if (result.matches.length === 0) {
+                    document.querySelector('[data-output="test"]').innerHTML = 
+                        '<div style="color: #fbbf24;">没有找到匹配项</div>';
+                    showMessage('没有找到匹配项', 'info');
+                } else {
+                    const matchesHtml = result.matches.map((match, index) => `
+                        <div style="background: #2a2a2a; padding: 8px; margin: 4px 0; border-radius: 4px;">
+                            <div style="color: #4ade80;">匹配 ${index + 1}: "${escapeHtml(match.text)}"</div>
+                            <div style="color: #9ca3af; font-size: 11px;">位置: ${match.position} - ${match.position + match.length - 1}</div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelector('[data-output="test"]').innerHTML = matchesHtml;
+                    showMessage(`找到 ${result.matches.length} 个匹配项`, 'success');
+                }
+            }
+        };
+        
+        // 文件上传处理
+        function handleFileUpload(file) {
+            console.log('🎯 文件上传事件触发');
+            if (!file) return;
+            
+            showMessage(`正在读取文件: ${file.name}`, 'info');
+            
+            // 检查文件大小
+            if (file.size > 10 * 1024 * 1024) {
+                showMessage('文件大小超过限制 (最大10MB)', 'error');
+                return;
+            }
+            
+            // 检查文件类型
+            const validExtensions = ['.js', '.txt', '.json'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+                showMessage('不支持的文件类型。请上传 .js, .txt 或 .json 文件', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const content = e.target.result;
+                document.querySelector('[data-field="js-input"]').value = content;
+                showMessage(`文件 "${file.name}" 上传成功`, 'success');
+            };
+            
+            reader.onerror = function() {
+                showMessage('文件读取失败', 'error');
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        // 绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 页面加载完成，绑定事件...');
+            
+            // 绑定按钮事件
+            document.addEventListener('click', function(e) {
+                const action = e.target.getAttribute('data-action');
+                if (action && handlers[action]) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlers[action]();
+                }
+            });
+            
+            // 绑定文件上传事件
+            document.querySelector('[data-field="file-input"]').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleFileUpload(file);
+                }
+            });
+            
+            showMessage('应用初始化完成，所有功能可用', 'success');
+            console.log('✅ 所有事件绑定完成');
+        });
+    </script>
+</body>
+</html>

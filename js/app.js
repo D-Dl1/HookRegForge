@@ -1,5 +1,5 @@
 /**
- * HookRegForge 主应用
+ * HookRegForge 主应用 - 修复版本
  * 整合所有模块并处理业务逻辑
  */
 
@@ -11,6 +11,8 @@ import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.j
 
 class HookRegForge {
     constructor() {
+        console.log('🚀 开始初始化 HookRegForge...');
+        
         this.parser = new ASTParser();
         this.regexGenerator = new RegexGenerator();
         this.ui = new UIManager();
@@ -28,23 +30,21 @@ class HookRegForge {
     init() {
         console.log(`开始初始化 ${APP_CONFIG.name} v${APP_CONFIG.version}`);
         
-        // 检查UI元素是否正确初始化
-        this.debugElementsStatus();
-        
-        this.bindEvents();
-        this.loadSampleCode();
-        
-        // 添加CSS动画
-        this.addAnimationStyles();
-        
-        console.log(`${APP_CONFIG.name} v${APP_CONFIG.version} 已初始化`);
+        // 等待DOM完全加载后再绑定事件
+        setTimeout(() => {
+            this.debugElementsStatus();
+            this.bindEvents();
+            this.loadSampleCode();
+            this.addAnimationStyles();
+            console.log(`✅ ${APP_CONFIG.name} v${APP_CONFIG.version} 初始化完成`);
+        }, 100);
     }
 
     /**
      * 调试元素状态
      */
     debugElementsStatus() {
-        console.log('=== 调试UI元素状态 ===');
+        console.log('=== 🔍 调试UI元素状态 ===');
         
         // 检查按钮元素
         const buttons = {
@@ -59,9 +59,18 @@ class HookRegForge {
         
         Object.entries(buttons).forEach(([name, element]) => {
             if (element) {
-                console.log(`✓ ${name}: 已找到`, element);
+                console.log(`✅ ${name}: 已找到`, element);
             } else {
-                console.warn(`✗ ${name}: 未找到`);
+                console.warn(`❌ ${name}: 未找到`);
+                // 尝试重新查找
+                const selector = this.getElementSelector(name);
+                if (selector) {
+                    const foundElement = document.querySelector(selector);
+                    if (foundElement) {
+                        console.log(`🔄 ${name}: 重新找到`, foundElement);
+                        this.ui.elements[name] = foundElement;
+                    }
+                }
             }
         });
         
@@ -78,9 +87,18 @@ class HookRegForge {
         
         Object.entries(inputs).forEach(([name, element]) => {
             if (element) {
-                console.log(`✓ ${name}: 已找到`, element);
+                console.log(`✅ ${name}: 已找到`, element);
             } else {
-                console.warn(`✗ ${name}: 未找到`);
+                console.warn(`❌ ${name}: 未找到`);
+                // 尝试重新查找
+                const selector = this.getElementSelector(name);
+                if (selector) {
+                    const foundElement = document.querySelector(selector);
+                    if (foundElement) {
+                        console.log(`🔄 ${name}: 重新找到`, foundElement);
+                        this.ui.elements[name] = foundElement;
+                    }
+                }
             }
         });
         
@@ -88,9 +106,34 @@ class HookRegForge {
     }
 
     /**
+     * 获取元素选择器
+     */
+    getElementSelector(elementName) {
+        const selectorMap = {
+            clearBtn: APP_CONFIG.selectors.actions.clear,
+            loadSampleBtn: APP_CONFIG.selectors.actions.loadSample,
+            uploadFileBtn: APP_CONFIG.selectors.actions.uploadFile,
+            generateBtn: APP_CONFIG.selectors.actions.generate,
+            copyRegexBtn: APP_CONFIG.selectors.actions.copyRegex,
+            testBtn: APP_CONFIG.selectors.actions.test,
+            expandAstBtn: APP_CONFIG.selectors.actions.expandAst,
+            jsInput: APP_CONFIG.selectors.fields.jsInput,
+            targetFunction: APP_CONFIG.selectors.fields.targetFunction,
+            hookType: APP_CONFIG.selectors.fields.hookType,
+            depth: APP_CONFIG.selectors.fields.depth,
+            flexible: APP_CONFIG.selectors.fields.flexible,
+            testString: APP_CONFIG.selectors.fields.testString,
+            fileInput: APP_CONFIG.selectors.fields.fileInput
+        };
+        return selectorMap[elementName];
+    }
+
+    /**
      * 绑定事件
      */
     bindEvents() {
+        console.log('🔗 开始绑定事件...');
+        
         // 操作按钮事件
         this.bindActionEvents();
         
@@ -99,87 +142,102 @@ class HookRegForge {
         
         // 语法验证事件
         this.bindValidationEvents();
+        
+        console.log('✅ 事件绑定完成');
     }
 
     /**
-     * 绑定操作按钮事件
+     * 绑定操作按钮事件 - 使用直接DOM查询方式
      */
     bindActionEvents() {
-        // 清空按钮
-        const clearBtn = this.ui.elements.clearBtn;
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                console.log('清空按钮被点击');
-                this.clearInput();
-            });
-        } else {
-            console.warn('清空按钮元素未找到');
-        }
+        console.log('🔗 绑定操作按钮事件...');
+        
+        // 清空按钮 - 使用多种方式确保绑定成功
+        this.bindButtonEvent('[data-action="clear"]', () => {
+            console.log('🎯 清空按钮被点击');
+            this.clearInput();
+            this.showMessage('输入已清空', 'success');
+        }, '清空按钮');
 
         // 加载示例按钮
-        const loadSampleBtn = this.ui.elements.loadSampleBtn;
-        if (loadSampleBtn) {
-            loadSampleBtn.addEventListener('click', () => {
-                console.log('加载示例按钮被点击');
-                this.loadSampleCode();
-            });
-        } else {
-            console.warn('加载示例按钮元素未找到');
-        }
-
-        // 文件上传事件
-        const fileInput = this.ui.elements.fileInput;
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                console.log('文件选择事件触发');
-                this.handleFileUpload(e.target.files[0]);
-            });
-        } else {
-            console.warn('文件输入元素未找到');
-        }
+        this.bindButtonEvent('[data-action="load-sample"]', () => {
+            console.log('🎯 加载示例按钮被点击');
+            this.loadSampleCode();
+        }, '加载示例按钮');
 
         // 生成按钮
-        const generateBtn = this.ui.elements.generateBtn;
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => {
-                console.log('生成按钮被点击');
-                this.generateHook();
-            });
-        } else {
-            console.warn('生成按钮元素未找到');
-        }
+        this.bindButtonEvent('[data-action="generate"]', () => {
+            console.log('🎯 生成按钮被点击');
+            this.generateHook();
+        }, '生成按钮');
 
         // 复制正则按钮
-        const copyRegexBtn = this.ui.elements.copyRegexBtn;
-        if (copyRegexBtn) {
-            copyRegexBtn.addEventListener('click', () => {
-                console.log('复制正则按钮被点击');
-                this.copyRegex();
-            });
-        } else {
-            console.warn('复制正则按钮元素未找到');
-        }
+        this.bindButtonEvent('[data-action="copy-regex"]', () => {
+            console.log('🎯 复制正则按钮被点击');
+            this.copyRegex();
+        }, '复制正则按钮');
 
         // 测试按钮
-        const testBtn = this.ui.elements.testBtn;
-        if (testBtn) {
-            testBtn.addEventListener('click', () => {
-                console.log('测试按钮被点击');
-                this.testRegex();
-            });
-        } else {
-            console.warn('测试按钮元素未找到');
-        }
+        this.bindButtonEvent('[data-action="test"]', () => {
+            console.log('🎯 测试按钮被点击');
+            this.testRegex();
+        }, '测试按钮');
 
         // 展开AST按钮
-        const expandAstBtn = this.ui.elements.expandAstBtn;
-        if (expandAstBtn) {
-            expandAstBtn.addEventListener('click', () => {
-                console.log('展开AST按钮被点击');
-                this.expandAST();
+        this.bindButtonEvent('[data-action="expand-ast"]', () => {
+            console.log('🎯 展开AST按钮被点击');
+            this.expandAST();
+        }, '展开AST按钮');
+
+        // 文件上传事件
+        this.bindFileUploadEvent();
+    }
+
+    /**
+     * 通用按钮事件绑定方法
+     */
+    bindButtonEvent(selector, handler, description) {
+        const element = document.querySelector(selector);
+        if (element) {
+            // 移除可能存在的旧事件
+            element.onclick = null;
+            
+            // 绑定新事件
+            element.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handler();
             });
+            
+            // 备用绑定方式
+            element.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handler();
+            };
+            
+            console.log(`✅ ${description}事件绑定成功`);
         } else {
-            console.warn('展开AST按钮元素未找到');
+            console.error(`❌ ${description}元素未找到: ${selector}`);
+        }
+    }
+
+    /**
+     * 绑定文件上传事件
+     */
+    bindFileUploadEvent() {
+        const fileInput = document.querySelector('[data-field="file-input"]');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                console.log('🎯 文件选择事件触发');
+                const file = e.target.files[0];
+                if (file) {
+                    this.handleFileUpload(file);
+                }
+            });
+            console.log('✅ 文件上传事件绑定成功');
+        } else {
+            console.error('❌ 文件输入元素未找到');
         }
     }
 
@@ -187,18 +245,22 @@ class HookRegForge {
      * 绑定配置变化事件
      */
     bindConfigEvents() {
-        const configElements = [
-            this.ui.elements.targetFunction,
-            this.ui.elements.hookType,
-            this.ui.elements.depth,
-            this.ui.elements.flexible
+        const configSelectors = [
+            '[data-field="target-function"]',
+            '[data-field="hook-type"]',
+            '[data-field="depth"]',
+            '[data-field="flexible"]'
         ];
 
-        configElements.forEach(element => {
+        configSelectors.forEach(selector => {
+            const element = document.querySelector(selector);
             if (element) {
                 element.addEventListener('change', () => {
                     this.updateConfig();
                 });
+                console.log(`✅ 配置字段事件绑定成功: ${selector}`);
+            } else {
+                console.warn(`⚠️ 配置字段未找到: ${selector}`);
             }
         });
     }
@@ -207,34 +269,77 @@ class HookRegForge {
      * 绑定语法验证事件
      */
     bindValidationEvents() {
-        if (this.ui.elements.jsInput) {
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        if (jsInput) {
             const debouncedValidation = debounce(() => {
                 this.validateSyntax();
             }, APP_CONFIG.ui.debounceDelay);
 
-            this.ui.elements.jsInput.addEventListener('input', debouncedValidation);
+            jsInput.addEventListener('input', debouncedValidation);
+            console.log('✅ 语法验证事件绑定成功');
+        } else {
+            console.warn('⚠️ JavaScript输入框未找到');
         }
+    }
+
+    /**
+     * 显示消息 - 简化版本
+     */
+    showMessage(message, type = 'info') {
+        console.log(`💬 消息: ${message} (${type})`);
+        
+        // 创建消息元素
+        const messageEl = document.createElement('div');
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 14px;
+            max-width: 300px;
+        `;
+        messageEl.textContent = message;
+        
+        document.body.appendChild(messageEl);
+        
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.parentNode.removeChild(messageEl);
+            }
+        }, 3000);
     }
 
     /**
      * 更新配置
      */
     updateConfig() {
-        this.config = this.ui.getConfig();
+        const targetFunction = document.querySelector('[data-field="target-function"]')?.value || '';
+        const hookType = document.querySelector('[data-field="hook-type"]')?.value || 'function';
+        const depth = parseInt(document.querySelector('[data-field="depth"]')?.value || '3');
+        const flexible = document.querySelector('[data-field="flexible"]')?.checked || false;
+        
+        this.config = { targetFunction, hookType, depth, flexible };
+        console.log('📝 配置已更新:', this.config);
     }
 
     /**
      * 验证语法
      */
     validateSyntax() {
-        const code = this.ui.getJavaScriptCode().trim();
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        const code = jsInput?.value?.trim();
         if (!code) return;
 
         const result = validateJavaScript(code);
         if (result.valid) {
-            this.ui.showMessage(SUCCESS_MESSAGES.SYNTAX_VALID, 'success');
+            this.showMessage('语法正确', 'success');
         } else {
-            this.ui.showMessage(`语法错误: ${result.error}`, 'error');
+            this.showMessage(`语法错误: ${result.error}`, 'error');
         }
     }
 
@@ -242,84 +347,210 @@ class HookRegForge {
      * 加载示例代码
      */
     loadSampleCode() {
-        this.ui.setJavaScriptCode(APP_CONFIG.samples.default);
-        this.ui.setConfigField('targetFunction', 'getName');
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        const targetFunction = document.querySelector('[data-field="target-function"]');
+        
+        if (jsInput) {
+            jsInput.value = APP_CONFIG.samples.default;
+        }
+        if (targetFunction) {
+            targetFunction.value = 'getName';
+        }
+        
         this.updateConfig();
-        this.ui.showMessage(SUCCESS_MESSAGES.SAMPLE_LOADED, 'success');
+        this.showMessage('示例代码已加载', 'success');
     }
 
     /**
      * 处理文件上传
-     * @param {File} file 上传的文件
      */
     async handleFileUpload(file) {
         if (!file) return;
 
-        this.ui.showLoading(true);
+        console.log(`📁 开始处理文件: ${file.name} (${file.size} bytes)`);
+        this.showMessage(`正在读取文件: ${file.name}`, 'info');
 
         try {
-            const content = await this.ui.handleFileUpload(file);
-            this.ui.setJavaScriptCode(content);
-            this.ui.showMessage(`文件 "${file.name}" 上传成功`, 'success');
+            // 检查文件大小
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                throw new Error('文件大小超过限制 (最大10MB)');
+            }
+
+            // 检查文件类型
+            const validExtensions = ['.js', '.txt', '.json'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
             
-            // 自动验证语法
-            setTimeout(() => {
-                this.validateSyntax();
-            }, 100);
+            if (!validExtensions.includes(fileExtension)) {
+                throw new Error('不支持的文件类型。请上传 .js, .txt 或 .json 文件');
+            }
+
+            // 读取文件
+            const content = await this.readFileContent(file);
+            
+            // 设置内容
+            const jsInput = document.querySelector('[data-field="js-input"]');
+            if (jsInput) {
+                jsInput.value = content;
+                this.showMessage(`文件 "${file.name}" 上传成功`, 'success');
+                
+                // 自动验证语法
+                setTimeout(() => {
+                    this.validateSyntax();
+                }, 100);
+            }
             
         } catch (error) {
-            this.ui.showMessage(`文件上传失败: ${error.message}`, 'error');
-        } finally {
-            this.ui.showLoading(false);
+            console.error('文件上传失败:', error);
+            this.showMessage(`文件上传失败: ${error.message}`, 'error');
         }
+    }
+
+    /**
+     * 读取文件内容
+     */
+    readFileContent(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('文件读取失败'));
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        });
     }
 
     /**
      * 清空输入
      */
     clearInput() {
-        this.ui.clearInput();
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        if (jsInput) {
+            jsInput.value = '';
+        }
+        
         this.parser.clear();
         this.currentPaths = [];
         this.currentRegex = '';
+        
+        // 清空结果显示
+        this.clearResults();
+    }
+
+    /**
+     * 清空结果
+     */
+    clearResults() {
+        const astOutput = document.querySelector('[data-output="ast"]');
+        const regexOutput = document.querySelector('[data-output="regex"]');
+        const pathsList = document.querySelector('[data-list="paths"]');
+        
+        if (astOutput) {
+            astOutput.innerHTML = '<code>解析的AST结构将在这里显示...</code>';
+        }
+        if (regexOutput) {
+            regexOutput.innerHTML = '<code>生成的正则表达式将在这里显示...</code>';
+        }
+        if (pathsList) {
+            pathsList.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>输入代码并点击"生成Hook正则"来发现函数路径</p></div>';
+        }
     }
 
     /**
      * 生成Hook正则
      */
     async generateHook() {
-        const code = this.ui.getJavaScriptCode().trim();
+        const jsInput = document.querySelector('[data-field="js-input"]');
+        const code = jsInput?.value?.trim();
+        
         if (!code) {
-            this.ui.showMessage(ERROR_MESSAGES.EMPTY_CODE, 'warning');
+            this.showMessage('请输入JavaScript代码', 'error');
             return;
         }
 
-        this.ui.showLoading(true);
+        this.showMessage('正在生成Hook正则...', 'info');
 
         try {
             // 解析AST
             const ast = this.parser.parse(code);
-            this.ui.displayAST(ast);
+            this.displayAST(ast);
 
             // 提取路径
             this.currentPaths = this.parser.extractPaths(this.config);
-            this.ui.displayPaths(this.currentPaths);
+            this.displayPaths(this.currentPaths);
 
             // 生成正则
             const regexResult = this.regexGenerator.generate(this.currentPaths, this.config);
             this.currentRegex = regexResult.regex;
-            this.ui.displayRegex(regexResult.regex, regexResult.explanation);
+            this.displayRegex(regexResult.regex, regexResult.explanation);
 
-            // 切换到路径标签页
-            this.ui.switchTab('paths');
-
-            this.ui.showMessage(SUCCESS_MESSAGES.HOOK_GENERATED, 'success');
+            this.showMessage('Hook正则生成完成', 'success');
 
         } catch (error) {
-            this.ui.showMessage(`${ERROR_MESSAGES.PARSE_ERROR}: ${error.message}`, 'error');
             console.error('生成Hook正则时出错:', error);
-        } finally {
-            this.ui.showLoading(false);
+            this.showMessage(`代码解析失败: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * 显示AST
+     */
+    displayAST(ast) {
+        const astOutput = document.querySelector('[data-output="ast"]');
+        if (astOutput) {
+            const formattedAst = JSON.stringify(ast, null, 2);
+            astOutput.innerHTML = `<code class="language-json">${this.escapeHtml(formattedAst)}</code>`;
+        }
+    }
+
+    /**
+     * 显示路径
+     */
+    displayPaths(paths) {
+        const pathsList = document.querySelector('[data-list="paths"]');
+        const pathsCounter = document.querySelector('[data-counter="paths"]');
+        
+        if (pathsCounter) {
+            pathsCounter.textContent = `${paths.length} 个路径`;
+        }
+        
+        if (pathsList) {
+            if (paths.length === 0) {
+                pathsList.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>未找到匹配的函数路径</p></div>';
+                return;
+            }
+
+            const pathsHtml = paths.map(path => `
+                <div class="path-item">
+                    <div class="path-name">${this.escapeHtml(path.path)}</div>
+                    <div class="path-details">
+                        <span class="path-type">${path.type}</span>
+                        ${path.context ? ` • <span class="path-context">上下文: ${path.context}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            pathsList.innerHTML = pathsHtml;
+        }
+    }
+
+    /**
+     * 显示正则表达式
+     */
+    displayRegex(regex, explanation) {
+        const regexOutput = document.querySelector('[data-output="regex"]');
+        const regexExplanation = document.querySelector('[data-output="regex-explanation"]');
+        
+        if (regexOutput) {
+            regexOutput.innerHTML = `<code class="language-regex">${this.escapeHtml(regex)}</code>`;
+        }
+        if (regexExplanation) {
+            regexExplanation.innerHTML = explanation;
         }
     }
 
@@ -328,15 +559,15 @@ class HookRegForge {
      */
     async copyRegex() {
         if (!this.currentRegex) {
-            this.ui.showMessage(ERROR_MESSAGES.NO_REGEX, 'warning');
+            this.showMessage('没有可复制的正则表达式', 'error');
             return;
         }
 
         const success = await copyToClipboard(this.currentRegex);
         if (success) {
-            this.ui.showMessage(SUCCESS_MESSAGES.REGEX_COPIED, 'success');
+            this.showMessage('正则表达式已复制到剪贴板', 'success');
         } else {
-            this.ui.showMessage('复制失败，请手动复制', 'error');
+            this.showMessage('复制失败，请手动复制', 'error');
         }
     }
 
@@ -345,22 +576,51 @@ class HookRegForge {
      */
     testRegex() {
         if (!this.currentRegex) {
-            this.ui.showMessage(ERROR_MESSAGES.NO_REGEX, 'warning');
+            this.showMessage('没有可测试的正则表达式', 'error');
             return;
         }
 
-        const testString = this.ui.getTestString().trim();
+        const testString = document.querySelector('[data-field="test-string"]')?.value?.trim();
         if (!testString) {
-            this.ui.showMessage(ERROR_MESSAGES.NO_TEST_STRING, 'warning');
+            this.showMessage('请输入测试字符串', 'error');
             return;
         }
 
         const result = this.regexGenerator.test(this.currentRegex, testString);
-        this.ui.displayTestResult(result);
+        this.displayTestResult(result);
 
         if (result.success && result.matches.length > 0) {
-            this.ui.showMessage(`找到 ${result.matches.length} 个匹配项`, 'success');
+            this.showMessage(`找到 ${result.matches.length} 个匹配项`, 'success');
+        } else {
+            this.showMessage('没有找到匹配项', 'info');
         }
+    }
+
+    /**
+     * 显示测试结果
+     */
+    displayTestResult(result) {
+        const testOutput = document.querySelector('[data-output="test"]');
+        if (!testOutput) return;
+
+        if (!result.success) {
+            testOutput.innerHTML = `<div class="empty-state"><p>${this.escapeHtml(result.error)}</p></div>`;
+            return;
+        }
+
+        if (result.matches.length === 0) {
+            testOutput.innerHTML = '<div class="empty-state"><p>没有找到匹配项</p></div>';
+            return;
+        }
+
+        const resultsHtml = result.matches.map(match => `
+            <div class="match-result">
+                <div class="match-text">匹配: "${this.escapeHtml(match.text)}"</div>
+                <div class="path-details">位置: ${match.position} - ${match.position + match.length - 1}</div>
+            </div>
+        `).join('');
+
+        testOutput.innerHTML = resultsHtml;
     }
 
     /**
@@ -369,42 +629,35 @@ class HookRegForge {
     expandAST() {
         const ast = this.parser.getAST();
         if (!ast) {
-            this.ui.showMessage(ERROR_MESSAGES.NO_AST, 'warning');
+            this.showMessage('请先解析JavaScript代码', 'error');
             return;
         }
 
-        this.ui.expandAST(ast);
-        this.ui.switchTab('ast');
+        this.displayAST(ast);
+        this.showMessage('AST已展开显示', 'success');
+    }
+
+    /**
+     * HTML转义
+     */
+    escapeHtml(text) {
+        if (typeof text !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**
      * 添加CSS动画样式
      */
     addAnimationStyles() {
+        // 简化版本，只添加必要样式
         const style = document.createElement('style');
         style.textContent = `
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
+            .path-item, .match-result {
+                animation: fadeInUp 0.3s ease-out;
             }
             
-            @keyframes slideOutRight {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-            }
-
             @keyframes fadeInUp {
                 from {
                     opacity: 0;
@@ -415,133 +668,12 @@ class HookRegForge {
                     transform: translateY(0);
                 }
             }
-
-            .path-item, .match-result {
-                animation: fadeInUp 0.3s ease-out;
-            }
-
-            .explanation-section {
-                margin-bottom: 1rem;
-                padding: 1rem;
-                background: var(--bg-primary);
-                border-radius: var(--border-radius);
-                border-left: 3px solid var(--accent-primary);
-            }
-
-            .explanation-section h5 {
-                color: var(--text-primary);
-                margin-bottom: 0.5rem;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .explanation-section h5 i {
-                color: var(--accent-primary);
-            }
-
-            .pattern-list, .feature-list, .usage-list {
-                list-style: none;
-                padding: 0;
-                margin: 0.5rem 0;
-            }
-
-            .pattern-list li {
-                margin-bottom: 0.5rem;
-                padding: 0.5rem;
-                background: var(--bg-tertiary);
-                border-radius: var(--border-radius);
-                font-family: var(--font-mono);
-            }
-
-            .feature-list li, .usage-list li {
-                margin-bottom: 0.5rem;
-                padding-left: 1.5rem;
-                position: relative;
-            }
-
-            .feature-list li i, .usage-list li::before {
-                position: absolute;
-                left: 0;
-                top: 0.2rem;
-                color: var(--accent-primary);
-            }
-
-            .usage-list li::before {
-                content: '•';
-                font-weight: bold;
-            }
-
-            .config-input, .config-select, .test-input, .code-input {
-                width: 100%;
-                background: var(--bg-primary);
-                border: 1px solid var(--border-color);
-                border-radius: var(--border-radius);
-                padding: 0.75rem;
-                color: var(--text-primary);
-                font-size: 14px;
-                transition: border-color 0.3s ease;
-            }
-
-            .config-input:focus, .config-select:focus, .test-input:focus, .code-input:focus {
-                outline: none;
-                border-color: var(--accent-primary);
-                box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.2);
-            }
-
-            .code-input {
-                font-family: var(--font-mono);
-                min-height: 400px;
-                resize: vertical;
-                line-height: 1.5;
-            }
-
-            .test-input {
-                font-family: var(--font-mono);
-                min-height: 100px;
-                resize: vertical;
-            }
-
-            .config-form {
-                display: grid;
-                gap: 1rem;
-                margin-bottom: 1.5rem;
-            }
-
-            .code-output {
-                background: transparent !important;
-                color: var(--text-primary) !important;
-                padding: 1rem;
-                font-family: var(--font-mono);
-                font-size: 13px;
-                line-height: 1.4;
-                max-height: 400px;
-                overflow: auto;
-                margin: 0;
-            }
-
-            .generate-btn {
-                width: 100%;
-                margin-top: 1rem;
-            }
-
-            .test-input-group {
-                margin-bottom: 1rem;
-            }
-
-            .test-input-group label {
-                display: block;
-                color: var(--text-secondary);
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-            }
         `;
         document.head.appendChild(style);
     }
 
     /**
      * 获取应用状态
-     * @returns {Object} 应用状态
      */
     getState() {
         return {
@@ -551,31 +683,36 @@ class HookRegForge {
             ast: this.parser.getAST()
         };
     }
-
-    /**
-     * 导出配置
-     * @returns {string} JSON配置
-     */
-    exportConfig() {
-        const state = this.getState();
-        return JSON.stringify(state, null, 2);
-    }
 }
 
-// 初始化应用
-document.addEventListener('DOMContentLoaded', () => {
+// 初始化应用 - 使用更可靠的方式
+function initializeApp() {
+    console.log('🚀 准备初始化 HookRegForge...');
+    
     // 检查依赖
     if (typeof esprima === 'undefined') {
-        console.error('Esprima 库未加载，请检查依赖');
+        console.error('❌ Esprima 库未加载，请检查依赖');
         return;
     }
 
     try {
         window.hookRegForge = new HookRegForge();
+        console.log('✅ HookRegForge 初始化成功');
     } catch (error) {
-        console.error('初始化 HookRegForge 失败:', error);
+        console.error('❌ 初始化 HookRegForge 失败:', error);
     }
-});
+}
+
+// 多种初始化方式确保成功
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM 已经加载完成
+    initializeApp();
+}
+
+// 备用初始化
+setTimeout(initializeApp, 1000);
 
 // 全局错误处理
 window.addEventListener('error', (event) => {
@@ -585,3 +722,5 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
     console.error('未处理的Promise拒绝:', event.reason);
 });
+
+export { HookRegForge };
