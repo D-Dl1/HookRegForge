@@ -7,6 +7,8 @@ import { APP_CONFIG, DEFAULT_CONFIG, ERROR_MESSAGES, SUCCESS_MESSAGES } from './
 import { ASTParser } from './core/parser.js';
 import { RegexGenerator } from './core/regex-generator.js';
 import { UIManager } from './ui/ui-manager.js';
+import { UltraFastLineNumbers } from './ui/ultra-fast-line-numbers.js';
+import { RealtimeLineNumbers } from './ui/realtime-line-numbers.js';
 import { SimpleLineNumbers } from './ui/simple-line-numbers.js';
 import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.js';
 
@@ -151,16 +153,31 @@ class HookRegForge {
                 throw new Error('行号相关DOM元素未找到');
             }
             
-            this.lineNumbers = new SimpleLineNumbers('code-textarea', 'line-numbers');
-            console.log('✅ 简单行号功能初始化成功');
-            this.useLineNumbers = true;
+            // 尝试多种行号方案，从最快的开始
+            const lineNumberClasses = [
+                { class: UltraFastLineNumbers, name: '超快行号' },
+                { class: RealtimeLineNumbers, name: '实时行号' },
+                { class: SimpleLineNumbers, name: '简单行号' }
+            ];
             
-            // 确保初始状态正确
-            setTimeout(() => {
-                if (this.lineNumbers) {
-                    this.lineNumbers.update();
+            let initialized = false;
+            
+            for (const { class: LineNumberClass, name } of lineNumberClasses) {
+                try {
+                    this.lineNumbers = new LineNumberClass('code-textarea', 'line-numbers');
+                    console.log(`✅ ${name}功能初始化成功`);
+                    this.useLineNumbers = true;
+                    initialized = true;
+                    break;
+                } catch (classError) {
+                    console.warn(`❌ ${name}初始化失败:`, classError);
+                    continue;
                 }
-            }, 100);
+            }
+            
+            if (!initialized) {
+                throw new Error('所有行号方案都初始化失败');
+            }
             
         } catch (error) {
             console.error('❌ 行号功能初始化失败，切换到简单编辑器:', error);

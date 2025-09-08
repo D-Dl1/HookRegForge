@@ -193,8 +193,12 @@ body {
     flex-shrink: 0;
     box-sizing: border-box;
     height: 100%;
-    /* 确保与textarea同步滚动 */
-    scroll-behavior: smooth;
+    /* 移除scroll-behavior以获得即时响应 */
+    scroll-behavior: auto;
+    /* 优化滚动性能 */
+    will-change: scroll-position;
+    /* 确保硬件加速 */
+    transform: translateZ(0);
 }
 
 #jsInput, .code-input {
@@ -214,6 +218,12 @@ body {
     tab-size: 4;
     white-space: pre;
     word-wrap: break-word;
+    /* 优化滚动性能 */
+    will-change: scroll-position;
+    /* 确保硬件加速 */
+    transform: translateZ(0);
+    /* 移除滚动平滑以获得即时响应 */
+    scroll-behavior: auto;
 }
 
 .code-editor:focus-within {
