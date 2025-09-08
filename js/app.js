@@ -143,9 +143,25 @@ class HookRegForge {
      */
     initLineNumbers() {
         try {
+            // 检查DOM元素是否存在
+            const textarea = document.getElementById('code-textarea');
+            const lineNumbers = document.getElementById('line-numbers');
+            
+            if (!textarea || !lineNumbers) {
+                throw new Error('行号相关DOM元素未找到');
+            }
+            
             this.lineNumbers = new SimpleLineNumbers('code-textarea', 'line-numbers');
             console.log('✅ 简单行号功能初始化成功');
             this.useLineNumbers = true;
+            
+            // 确保初始状态正确
+            setTimeout(() => {
+                if (this.lineNumbers) {
+                    this.lineNumbers.update();
+                }
+            }, 100);
+            
         } catch (error) {
             console.error('❌ 行号功能初始化失败，切换到简单编辑器:', error);
             this.switchToSimpleEditor();
@@ -894,13 +910,20 @@ class HookRegForge {
             /position (\d+):(\d+)/i, // "position 1:5" (行:列)
             /\((\d+):(\d+)\)/,       // "(5:10)" (行:列)
             /at line (\d+)/i,        // "at line 5"
-            /on line (\d+)/i         // "on line 5"
+            /on line (\d+)/i,        // "on line 5"
+            /Line (\d+):/i           // "Line 4695:" (Esprima格式)
         ];
         
         for (const pattern of patterns) {
             const match = errorMessage.match(pattern);
             if (match) {
-                return parseInt(match[1]);
+                const lineNumber = parseInt(match[1]);
+                // 如果行号过大，可能是错误的解析，返回null
+                if (lineNumber > 100000) {
+                    console.warn(`行号 ${lineNumber} 异常大，可能是解析错误`);
+                    return null;
+                }
+                return lineNumber;
             }
         }
         

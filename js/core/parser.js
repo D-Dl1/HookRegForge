@@ -22,10 +22,31 @@ export class ASTParser {
         }
 
         try {
+            // 检查esprima是否可用
+            if (typeof esprima === 'undefined') {
+                throw new Error('JavaScript解析器未加载，请刷新页面重试');
+            }
+
             this.ast = esprima.parseScript(code, APP_CONFIG.parser.options);
             return this.ast;
         } catch (error) {
-            throw new Error(`解析失败: ${error.message}`);
+            // 提供更友好的错误信息
+            let errorMessage = error.message;
+            
+            // 处理常见的语法错误
+            if (errorMessage.includes('Unexpected token')) {
+                if (errorMessage.includes('?')) {
+                    errorMessage = '语法错误: 意外的问号(?)，可能是使用了可选链操作符或条件运算符的语法问题';
+                } else if (errorMessage.includes('{')) {
+                    errorMessage = '语法错误: 意外的大括号，请检查对象或函数定义';
+                } else if (errorMessage.includes(')')) {
+                    errorMessage = '语法错误: 意外的右括号，请检查括号匹配';
+                } else {
+                    errorMessage = `语法错误: ${errorMessage}`;
+                }
+            }
+            
+            throw new Error(`解析失败: ${errorMessage}`);
         }
     }
 
