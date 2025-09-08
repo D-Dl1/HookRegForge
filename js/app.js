@@ -7,6 +7,8 @@ import { APP_CONFIG, DEFAULT_CONFIG, ERROR_MESSAGES, SUCCESS_MESSAGES } from './
 import { ASTParser } from './core/parser.js';
 import { RegexGenerator } from './core/regex-generator.js';
 import { UIManager } from './ui/ui-manager.js';
+import { UltraFastLineNumbers } from './ui/ultra-fast-line-numbers.js';
+import { RealtimeLineNumbers } from './ui/realtime-line-numbers.js';
 import { SimpleLineNumbers } from './ui/simple-line-numbers.js';
 import { debounce, validateJavaScript, copyToClipboard } from './utils/helpers.js';
 
@@ -143,9 +145,40 @@ class HookRegForge {
      */
     initLineNumbers() {
         try {
-            this.lineNumbers = new SimpleLineNumbers('code-textarea', 'line-numbers');
-            console.log('✅ 简单行号功能初始化成功');
-            this.useLineNumbers = true;
+            // 检查DOM元素是否存在
+            const textarea = document.getElementById('code-textarea');
+            const lineNumbers = document.getElementById('line-numbers');
+            
+            if (!textarea || !lineNumbers) {
+                throw new Error('行号相关DOM元素未找到');
+            }
+            
+            // 尝试多种行号方案，从最快的开始
+            const lineNumberClasses = [
+                { class: UltraFastLineNumbers, name: '超快行号' },
+                { class: RealtimeLineNumbers, name: '实时行号' },
+                { class: SimpleLineNumbers, name: '简单行号' }
+            ];
+            
+            let initialized = false;
+            
+            for (const { class: LineNumberClass, name } of lineNumberClasses) {
+                try {
+                    this.lineNumbers = new LineNumberClass('code-textarea', 'line-numbers');
+                    console.log(`✅ ${name}功能初始化成功`);
+                    this.useLineNumbers = true;
+                    initialized = true;
+                    break;
+                } catch (classError) {
+                    console.warn(`❌ ${name}初始化失败:`, classError);
+                    continue;
+                }
+            }
+            
+            if (!initialized) {
+                throw new Error('所有行号方案都初始化失败');
+            }
+            
         } catch (error) {
             console.error('❌ 行号功能初始化失败，切换到简单编辑器:', error);
             this.switchToSimpleEditor();
@@ -894,13 +927,20 @@ class HookRegForge {
             /position (\d+):(\d+)/i, // "position 1:5" (行:列)
             /\((\d+):(\d+)\)/,       // "(5:10)" (行:列)
             /at line (\d+)/i,        // "at line 5"
-            /on line (\d+)/i         // "on line 5"
+            /on line (\d+)/i,        // "on line 5"
+            /Line (\d+):/i           // "Line 4695:" (Esprima格式)
         ];
         
         for (const pattern of patterns) {
             const match = errorMessage.match(pattern);
             if (match) {
-                return parseInt(match[1]);
+                const lineNumber = parseInt(match[1]);
+                // 如果行号过大，可能是错误的解析，返回null
+                if (lineNumber > 100000) {
+                    console.warn(`行号 ${lineNumber} 异常大，可能是解析错误`);
+                    return null;
+                }
+                return lineNumber;
             }
         }
         

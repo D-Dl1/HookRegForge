@@ -16,9 +16,18 @@ export class SimpleLineNumbers {
         // 简单绑定事件
         this.textarea.addEventListener('input', () => this.update());
         this.textarea.addEventListener('scroll', () => this.sync());
+        this.textarea.addEventListener('keydown', () => {
+            // 延迟更新以确保内容变化后更新行号
+            setTimeout(() => this.update(), 0);
+        });
+        
+        // 窗口大小变化时重新同步
+        window.addEventListener('resize', () => this.sync());
         
         // 初始更新
         this.update();
+        
+        console.log('✅ 简单行号功能初始化完成');
     }
     
     update() {
@@ -38,7 +47,14 @@ export class SimpleLineNumbers {
     
     sync() {
         if (this.textarea && this.lineNumbers) {
+            // 确保滚动同步
             this.lineNumbers.scrollTop = this.textarea.scrollTop;
+            
+            // 确保样式匹配
+            const textareaStyles = window.getComputedStyle(this.textarea);
+            this.lineNumbers.style.lineHeight = textareaStyles.lineHeight;
+            this.lineNumbers.style.fontSize = textareaStyles.fontSize;
+            this.lineNumbers.style.fontFamily = textareaStyles.fontFamily;
         }
     }
     

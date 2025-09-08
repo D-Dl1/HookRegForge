@@ -172,6 +172,8 @@ body {
     border-radius: var(--border-radius);
     background: var(--bg-primary);
     overflow: hidden;
+    height: 500px;
+    max-height: 80vh;
 }
 
 .line-numbers {
@@ -186,15 +188,22 @@ body {
     min-width: 60px;
     border-right: 1px solid var(--border-color);
     white-space: pre;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     flex-shrink: 0;
     box-sizing: border-box;
+    height: 100%;
+    /* 移除scroll-behavior以获得即时响应 */
+    scroll-behavior: auto;
+    /* 优化滚动性能 */
+    will-change: scroll-position;
+    /* 确保硬件加速 */
+    transform: translateZ(0);
 }
 
 #jsInput, .code-input {
     flex: 1;
-    min-height: 500px;
-    max-height: 80vh;
+    height: 100%;
     background: transparent;
     border: none;
     outline: none;
@@ -205,7 +214,16 @@ body {
     line-height: 1.5;
     resize: none;
     overflow-y: auto;
+    overflow-x: auto;
     tab-size: 4;
+    white-space: pre;
+    word-wrap: break-word;
+    /* 优化滚动性能 */
+    will-change: scroll-position;
+    /* 确保硬件加速 */
+    transform: translateZ(0);
+    /* 移除滚动平滑以获得即时响应 */
+    scroll-behavior: auto;
 }
 
 .code-editor:focus-within {

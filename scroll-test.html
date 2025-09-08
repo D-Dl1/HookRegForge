@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滚动性能测试</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>滚动性能测试</h1>
+            <p>测试不同行号方案的滚动性能</p>
+        </header>
+        
+        <main class="main">
+            <div class="workspace">
+                <section class="input-section">
+                    <div class="section-header">
+                        <h2>代码编辑器</h2>
+                        <div class="toolbar">
+                            <button id="load-test-code" class="btn btn-primary">加载测试代码</button>
+                            <button id="clear-code" class="btn btn-secondary">清空</button>
+                            <span id="performance-info" style="margin-left: 1rem; color: var(--text-muted);"></span>
+                        </div>
+                    </div>
+                    <div class="editor-container">
+                        <div class="code-editor" id="line-number-editor">
+                            <div class="line-numbers" id="line-numbers"></div>
+                            <textarea data-field="js-input" class="code-input" id="code-textarea" placeholder="在此输入代码测试滚动性能..."></textarea>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { UltraFastLineNumbers } from './js/ui/ultra-fast-line-numbers.js';
+        
+        let lineNumbers;
+        let performanceMonitor;
+        
+        // 性能监控
+        class PerformanceMonitor {
+            constructor() {
+                this.scrollTimes = [];
+                this.updateTimes = [];
+            }
+            
+            measureScroll(fn) {
+                const start = performance.now();
+                fn();
+                const end = performance.now();
+                this.scrollTimes.push(end - start);
+                
+                // 只保留最近100次测量
+                if (this.scrollTimes.length > 100) {
+                    this.scrollTimes = this.scrollTimes.slice(-100);
+                }
+                
+                this.updateStats();
+            }
+            
+            measureUpdate(fn) {
+                const start = performance.now();
+                fn();
+                const end = performance.now();
+                this.updateTimes.push(end - start);
+                
+                if (this.updateTimes.length > 50) {
+                    this.updateTimes = this.updateTimes.slice(-50);
+                }
+                
+                this.updateStats();
+            }
+            
+            updateStats() {
+                const avgScroll = this.scrollTimes.length > 0 
+                    ? (this.scrollTimes.reduce((a, b) => a + b, 0) / this.scrollTimes.length).toFixed(2)
+                    : '0.00';
+                
+                const avgUpdate = this.updateTimes.length > 0
+                    ? (this.updateTimes.reduce((a, b) => a + b, 0) / this.updateTimes.length).toFixed(2)
+                    : '0.00';
+                
+                document.getElementById('performance-info').textContent = 
+                    `滚动: ${avgScroll}ms | 更新: ${avgUpdate}ms`;
+            }
+        }
+        
+        // 初始化
+        function init() {
+            try {
+                performanceMonitor = new PerformanceMonitor();
+                lineNumbers = new UltraFastLineNumbers('code-textarea', 'line-numbers');
+                
+                // 监控性能
+                const textarea = document.getElementById('code-textarea');
+                const originalScrollHandler = textarea.onscroll;
+                
+                textarea.addEventListener('scroll', () => {
+                    performanceMonitor.measureScroll(() => {
+                        // 滚动同步逻辑在UltraFastLineNumbers中
+                    });
+                });
+                
+                textarea.addEventListener('input', () => {
+                    performanceMonitor.measureUpdate(() => {
+                        // 更新逻辑在UltraFastLineNumbers中
+                    });
+                });
+                
+                console.log('✅ 测试环境初始化完成');
+            } catch (error) {
+                console.error('❌ 初始化失败:', error);
+            }
+        }
+        
+        // 生成测试代码
+        function generateTestCode() {
+            const lines = [];
+            
+            // 生成各种类型的JavaScript代码
+            const patterns = [
+                'function test{}() {',
+                '    console.log("line {}");',
+                '    const variable{} = "value{}";',
+                '    if (condition{}) {',
+                '        return result{};',
+                '    }',
+                '    for (let i = 0; i < {}; i++) {',
+                '        process(data[{}]);',
+                '    }',
+                '    const object{} = {',
+                '        property{}: "value{}",',
+                '        method{}: function() {',
+                '            return this.property{};',
+                '        }',
+                '    };',
+                '}'
+            ];
+            
+            // 生成500行代码
+            for (let i = 1; i <= 500; i++) {
+                const pattern = patterns[i % patterns.length];
+                const line = pattern.replace(/{}/g, i);
+                lines.push(line);
+            }
+            
+            return lines.join('\n');
+        }
+        
+        // 事件监听器
+        document.getElementById('load-test-code').addEventListener('click', () => {
+            const textarea = document.getElementById('code-textarea');
+            const testCode = generateTestCode();
+            
+            performanceMonitor.measureUpdate(() => {
+                textarea.value = testCode;
+                // 触发input事件
+                textarea.dispatchEvent(new Event('input'));
+            });
+            
+            console.log('✅ 测试代码已加载，共500行');
+        });
+        
+        document.getElementById('clear-code').addEventListener('click', () => {
+            const textarea = document.getElementById('code-textarea');
+            textarea.value = '';
+            textarea.dispatchEvent(new Event('input'));
+            
+            performanceMonitor.scrollTimes = [];
+            performanceMonitor.updateTimes = [];
+            performanceMonitor.updateStats();
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
